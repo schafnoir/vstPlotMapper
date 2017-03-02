@@ -1,0 +1,87 @@
+---
+title: "VST Plot Mapper notes"
+author: "Courtney Meier"
+date: "2/5/2017"
+output: 
+  pdf_document: 
+    latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(dplyr)
+```
+
+##  VegStructure Plot Mapper development
+Discoveries related to VegStructure data during development of Plot Mapper Shiny app:
+
+* 10 records have no subplotID identified, need to have this field be required in future.
+* Technicians are using additional pointIDs than those specified for mapping.
+
+Quantifying mapping errors:
+
+```{r pointErrors}
+# pointids in vstInput dataset
+usedPoints <- sort(unique(vstInput$pointid))
+
+# pointids expected based on protocol
+expPoints <- sort(unique(as.integer(pointSpatial$pointid)))
+extraPoints <- setdiff(usedPoints, expPoints)
+
+# Summary of rows in 'vstInput' associated with unexpected pointids
+vstInput %>% filter(pointid %in% extraPoints) -> mapError
+mapError %>% count(siteid, pointid)
+mapError %>% count(siteid)
+nrow(mapError)
+
+```
+
+### Summary of mapping errors
+
+* Total number of mapped records affected = 720
+* BART has greatest number of affected records = 541
+* HARV has second most = 68
+* D01 represents 85% of the problem records.
+
+Closer examination of problems:
+
+* `mapStatus == pointIDError` assigned if chosen point not one of expected points based on plottype (e.g., smTower, lgTower, distributed).
+* BART pointIDError = 549, which is high as expected.
+* SRER pointIDError = 228, which is much higher than expected.
+* Code for plotSpatial table assigned Tower Plots == "smTower", based on plotsize=="400" being present in list of plotsize values for SRER Tower Plots -> is the plotSpatial table correct? I thought that SRER had large Tower Plots?
+* At SRER, all pointIDError values associated with pointID = 23,39,43,59 which are perimeter cardinal direction pointIDs that would be acceptable for mapping in a lgTower plot, but would not be acceptable in a smTower plot. Result suggests that plotSize values for SRER Tower Plots in Plot Spatial data input file are incorrect.
+
+### Making the ggplot
+
+* Helpful hints for axes here: http://www.cookbook-r.com/Graphs/Axes_(ggplot2)/
+* Using conditionals to add plot features - will be useful for drawing geom_segments() depending on subplotid: http://stackoverflow.com/questions/39592827/conditional-track-in-a-plot-r-ggplot2
+* Adding tagID labels: http://docs.ggplot2.org/current/geom_text.html
+* Adding caption https://www.r-bloggers.com/subtitles-and-captions-with-ggplot2-v-2-2-0/
+* More interesting possibilities with text and text labels, this time with lines indicating which label goes to which dot: http://www.sthda.com/english/wiki/ggplot2-texts-add-text-annotations-to-a-graph-in-r-software
+* Color mapped points by taxonID, make size dependent on diameter (latter eventually, since structure data aren't in Fulcrum yet)
+* Consider making tick marks begin at origin (SW corner), and then going in 5 m increments from there; could also remove axis labels since techs may not use easting and northing data.
+* For point labels on map, have 3 radio buttons: no labels, labels above points, and labels offset from points (repel function) with lines connected to point.
+* Reactive function: Consider allowing user to change how mapped individuals are displayed (color coded, shape coded by taxonid) so that color blind techs can use the plot and techs can print on B&W paper.
+
+
+### Next steps
+
+* Develop and possibly add API code to pull data directly from Fulcrum -> question of how useful this is, given that using a SQL query via the Shiny API takes quite a bit of time. Might be better to just periodically do a manual pull from Fulcrum, and indicate clearly in the app the date of the last data pull.
+
+
+####  Adding a Leaflet map
+* https://rstudio.github.io/leaflet/shiny.html
+* Map would use Esri WorldMap
+* Example code, but may be JavaScript rather than Shiny - came from http://leaflet-extras.github.io/leaflet-providers/preview/index.html
+
+var Esri_WorldImagery = L.tileLayer('http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+});
+
+* Leaflet tutorial using third-party tiles: https://www.youtube.com/watch?v=7UzD0P2BggM
+* Want the map to automatically zoom to range of lat/longs provided for plot centroids
+* Done -> Need to modify global.R to bring in lat/long data from `plotSpatial` for easy display
+* Want to add points to the map that correspond to plot centroids; ideally, these would be polygons that represent the actual plot size (i.e., 20m x 20m or 40m x 40m, as indicated by the value of plotSpatial$plottype)
+* A table of nested subplot sizes associated with the clicked plot could be displayed in the sidebar, along with the clicked plotID.
+* Plots in the map will have labelID = plotSpatial$plotid
