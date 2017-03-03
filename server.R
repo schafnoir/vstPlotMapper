@@ -32,9 +32,12 @@ shinyServer(function(input, output, session) {
     
   # Get data for download
   tableData <- reactive({
-    plotData() %>% select(bouttype, plotid, taxonid, nestedsubplotid, tagid, supportingstemtagid, subplotid, stemeasting, stemnorthing) %>%
+    plotData() %>% 
+      select(nestedshrubsapling, nestedliana, nestedother, bouttype, plotid, taxonid, nestedsubplotid, 
+             tagid, supportingstemtagid, subplotid, stemeasting, stemnorthing) %>%
       arrange(nestedsubplotid, tagid) -> temp1
-    temp1 <- temp1[c("bouttype", "plotid", "subplotid", "nestedsubplotid", "tagid", "supportingstemtagid", "taxonid", "stemeasting", "stemnorthing")]
+    temp1 <- temp1[c("bouttype", "plotid", "subplotid", "nestedsubplotid", "nestedshrubsapling", "nestedliana", "nestedother", 
+                     "tagid", "supportingstemtagid", "taxonid", "stemeasting", "stemnorthing")]
   })
   
   
