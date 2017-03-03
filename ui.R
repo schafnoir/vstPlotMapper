@@ -8,7 +8,7 @@ navbarPage("NEON VST Mapper",
                     sidebarLayout(
                                   sidebarPanel(
                                     # Indicator of data currency
-                                    helpText("Data pulled from Fulcrum on:", br(), "2017-01-17"),
+                                    helpText("Data pulled from Fulcrum on:", br(), "2017-03-03"),
                                     
                                     # Select siteID from a list of sites with mapped individuals
                                     selectInput(
