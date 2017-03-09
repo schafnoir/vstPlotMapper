@@ -1,4 +1,40 @@
 library(dplyr)
+library(httr)
+
+### Define functions needed globally
+# Define function for converting azimuth degrees to radians
+radians = function(degrees) {
+  rad = (degrees*pi)/180
+  return(rad) 	
+}
+
+# Fulcrum query function for getting data
+get_Fulcrum_data <- function(api_token, sql){
+  require(httr)
+  url = paste0("https://api.fulcrumapp.com/api/v2/query?token=", 
+               api_token, "&format=json", "&q=", sql, "&headers=true")
+  request <- httr::GET(url, add_headers("X-ApiToken" = api_token, 
+                                        Accept = "application/json"))
+  content <- jsonlite::fromJSON(httr::content(request, as = "text"))
+  return(content$rows)
+}
+
+
+
+
+### Setup Fulcrum querying to obtain data for drop-downs and for plotting and download
+# Define api-token
+api_token = "6ce6d01c4ec984e68fcecbb04d96f71a229f1db388fe1acd90c1fb6ba77a1daf"
+
+# Define SQL query to generate a list of sites that have Mapping & Tagging data
+siteidQuery <- URLencode('SELECT DISTINCT siteid FROM "(TOS) VST: Mapping and Tagging [PROD]"')
+
+# Query Fulcrum for list of siteid values that exist in the data
+theSites <- get_Fulcrum_data(api_token = api_token, sql = siteidQuery)
+theSites <- arrange(theSites, siteid)
+
+
+
 
 ###  Spatial data input
 ## Read in plot spatial data, filter to applicableModules with 'vst', select desired columns, and rename
@@ -46,82 +82,10 @@ pointSpatial %>%
 pointSpatial$pointid <- as.integer(pointSpatial$pointid)
 
 
-###  VST mapping and tagging data input
-## Read in Fulcrum data, and select relevant fields
-# Did not select 'plottype' from the data because not all records have plottype assigned
-# Did not select 'plotsize' from the data because most records have no plotsize assigned
-# Did not select 'applicableModules' because most records are "" in this table
-# Subplot is re-assigned based plottype and plotsize information, existing subplotid values include 10m x 10m 'subplots'
-# from Plant Div that are not used in VST.
-vstInput <- read.csv("data/tos_vst_mapping_tagging_prod.csv", header=T, stringsAsFactors = F)
-vstInput %>% select(randomsubplota, randomsubplotb, nestedshrubsapling, nestedliana, nestedother, 
-                   bouttype, plotid, siteid, taxonid, subplotid, nestedsubplotid, tagid, 
-                   supportingstemtagid, pointid, stemdistance, stemazimuth) -> vstInput
 
-# Join 'vstInput' with 'plotSpatial', and only keep 'vstInput' records with matching plotid
-# Some records lacked matching plotid -> don't need in future with controlled plotid input?
-vstInput <- inner_join(vstInput, plotSpatial, by = "plotid")
 
-# Some subplotIDs were assigned at the 10m x 10m level, rather than 20m x 20m level;
-# Assign new `subplotid` based on plotType using dplyr::mutate
-vstInput %>% mutate(newsubplotid = ifelse(plottype!="lgTower", 31,
-                                    ifelse(subplotid %in% c(21,22,30,31), 21,
-                                    ifelse(subplotid %in% c(23,24,32,33), 23,
-                                    ifelse(subplotid %in% c(39,40,48,49), 39,
-                                    ifelse(subplotid %in% c(41,42,50,51), 41,
-                                           "NA")))))) %>%
-  select(-subplotid) %>%
-  rename(subplotid=newsubplotid) -> vstInput
 
-vstInput$subplotid <- as.integer(vstInput$subplotid)
-vstInput$nestedshrubsapling <- as.integer(vstInput$nestedshrubsapling)
-
-# After mutate function above, there are 10 records with 'corrSubplotID == NA' -> remove
-vstInput %>% filter(!subplotid=="NA") -> vstInput
-
-# Make 'plotsubplotid' to pipe to plotChoice drop-down: e.g., "(T) BART_050: 21"
-vstInput %>% mutate(plotsubplotid = ifelse(plottype=="distributed", paste0("(D) ", plotid),
-                                ifelse(plottype=="smTower", paste0("(T) ", plotid),
-                                paste0("(T) ", plotid, ": ", subplotid)))) -> vstInput
-
-# Create `pointstatus` variable to detect invalid pointid values based on plottype
+### Define additional parameters needed to work with site VST data in server.R
+# Define expected pointid values for Distributed/smTower Plots, and lgTower Plots
 expSmall <- c(31,33,41,49,51,21,25,57,61)
 expLarge <- c(expSmall,23,39,43,59)
-vstInput %>% mutate(pointstatus = ifelse(pointid=="NA", "notMapped",
-                                ifelse(plottype=="lgTower" & pointid %in% expLarge, "validPointID",
-                                ifelse(pointid %in% expSmall, "validPointID",
-                                "errorPointID")))) -> vstInput
-
-# Create 'plotpointid' variable for valid pointids only, to enable join with 'pointSpatial' data table
-# Join to create `pointeasting` and `pointnorthing` in vstInput
-vstInput %>% mutate(plotpointid = ifelse(pointid=="NA", "NA", 
-                                  ifelse(pointstatus=="validPointID", paste(plotid, pointid, sep="_"),
-                                  "NA"))) -> vstInput
-
-vstInput <- left_join(vstInput, pointSpatial)
-
-
-## Calculate 'stemeasting' and 'stemnorthing' using 'stemdistance' and 'stemazimuth'
-# Define function for converting azimuth degrees to radians
-radians = function(degrees) {
-  rad = (degrees*pi)/180
-  return(rad) 	
-}
-
-# Calculate 'stemeasting' and 'stemnorthing', and sort final dataset
-vstInput %>% 
-  mutate(stemeasting = round(pointeasting + stemdistance*sin(radians(stemazimuth))), digits = 2) %>%
-  mutate(stemnorthing = round(pointnorthing + stemdistance*cos(radians(stemazimuth))), digits = 2) %>%
-  arrange(siteid, plotid, subplotid) -> vstInput
-  
-  
-
-
-
-
-
-
-
-
-
-

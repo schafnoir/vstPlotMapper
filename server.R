@@ -2,14 +2,94 @@ library(shiny)
 library(dplyr)
 library(stringr)
 library(ggplot2)
+library(ggrepel)
+library(httr)
 
 # Define server logic required to create plot map
 shinyServer(function(input, output, session) {
+  ### Query data from Fulcrum based on site selected by user
+  # Construct Fulcrum query
+  dataQuery <- reactive({
+    paste(URLencode('SELECT * FROM "(TOS) VST: Mapping and Tagging [PROD]"'),
+          URLencode(paste0("WHERE siteid LIKE '", input$siteChoice, "'")),
+          sep = "%20")
+  })
+  
+  # Query Fulcrum to obtain site data
+  fulcrumData <- reactive({
+    temp <- if (input$siteChoice==''){
+      return(NULL)
+    } else {
+    get_Fulcrum_data(api_token = api_token, sql = dataQuery())
+    }
+  })
+  
+  
+  ### Filter and mutate `fulcrumData` to generate columns required for plot maps and data download
+  siteData <- reactive({
+    temp <- if (input$siteChoice==''){
+      return(NULL)
+    } else {
+    # Select needed columns from `fulcrumData`
+    sd <- fulcrumData() %>% 
+      select(nestedshrubsapling, nestedliana, nestedother, bouttype, plotid, siteid, taxonid,
+               subplotid, nestedsubplotid, tagid, supportingstemtagid, pointid, stemdistance, stemazimuth)
+    
+    # Join with 'plotSpatial', and only keep records with matching plotid
+    sd <- inner_join(sd, plotSpatial, by = "plotid")
+    
+    sd %>%
+      # Some subplotIDs were assigned at the 10m x 10m level: Assign new `subplotid` based on plotType
+      mutate(newsubplotid = ifelse(plottype!="lgTower", 31,
+                                   ifelse(subplotid %in% c(21,22,30,31), 21,
+                                          ifelse(subplotid %in% c(23,24,32,33), 23,
+                                                 ifelse(subplotid %in% c(39,40,48,49), 39,
+                                                        ifelse(subplotid %in% c(41,42,50,51), 41,
+                                                               "NA")))))) %>%
+      select(-subplotid) %>%
+      rename(subplotid=newsubplotid) %>%
+      
+      # Remove instances where `subplotid` is 'NA'
+      filter(!subplotid=="NA") %>%
+      
+      # Create 'plotsubplotid' to pipe to plotChoice drop-down: e.g., "(T) BART_050: 21"
+      mutate(plotsubplotid = ifelse(plottype=="distributed", paste0("(D) ", plotid),
+                                    ifelse(plottype=="smTower", paste0("(T) ", plotid),
+                                           paste0("(T) ", plotid, ": ", subplotid)))) %>%
+      # Create `pointstatus` variable to detect invalid pointid values based on plottype
+      mutate(pointstatus = ifelse(is.na(pointid), "notMapped",
+                                  ifelse(plottype=="lgTower" & pointid %in% expLarge, "validPointID",
+                                         ifelse(pointid %in% expSmall, "validPointID",
+                                                "errorPointID")))) %>%
+      # Create 'plotpointid' variable for valid pointids only, to enable join with 'pointSpatial' data table
+      mutate(plotpointid = ifelse(is.na(pointid), "NA", 
+                                  ifelse(pointstatus=="validPointID", paste(plotid, pointid, sep="_"),
+                                         "NA"))) -> sd
+      
+    # Join to create `pointeasting` and `pointnorthing`
+    sd$pointid <- as.integer(sd$pointid)
+    sd <- left_join(sd, pointSpatial)
+    
+    # Calculate 'stemeasting' and 'stemnorthing', and sort final dataset
+    sd %>%
+      mutate(stemeasting = round(pointeasting + stemdistance*sin(radians(stemazimuth)), digits = 2)) %>%
+      mutate(stemnorthing = round(pointnorthing + stemdistance*cos(radians(stemazimuth)), digits = 2)) %>%
+      arrange(plotid, subplotid) -> sd
+    
+    sd
+    }
+  })
+  
+  
   
   ###  Construct menu content for sidebar drop-downs
   # Obtain a list of plots available for the site selected by the user
   thePlots <- reactive({
-    vstInput %>% filter(siteid==input$siteChoice) %>% select(plotsubplotid) %>% distinct() %>% arrange(plotsubplotid)
+    temp <- if (input$siteChoice==''){
+      return(NULL)
+    } else {
+    siteData() %>% select(plotsubplotid) %>% distinct() %>% arrange(plotsubplotid)
+    }
   })
   
   # Populate second drop-down with plot list from above
@@ -19,33 +99,38 @@ shinyServer(function(input, output, session) {
   })
   
   
-  ###  Given user input, obtain data for the plot, then filter further to get data for the map, and for table/download
+  
+  ### Given user input, obtain plot data, then filter to get data for the map
   # Get data for the plot
   plotData <- reactive({
-    vstInput %>% filter(plotsubplotid==input$plotSelect)
+    temp <- if (input$plotSelect==''){
+      return(NULL)
+    } else {
+      siteData() %>% filter(plotsubplotid==input$plotSelect)
+    }
   })
   
   # Get data for the map
   mapData <- reactive({
-    vstInput %>% filter(plotsubplotid==input$plotSelect & pointstatus=="validPointID")
-  })
-    
-  # Get data for download
-  tableData <- reactive({
-    plotData() %>% 
-      select(nestedshrubsapling, nestedliana, nestedother, bouttype, plotid, taxonid, nestedsubplotid, 
-             tagid, supportingstemtagid, subplotid, stemeasting, stemnorthing) %>%
-      arrange(nestedsubplotid, tagid) -> temp1
-    temp1 <- temp1[c("bouttype", "plotid", "subplotid", "nestedsubplotid", "nestedshrubsapling", "nestedliana", "nestedother", 
-                     "tagid", "supportingstemtagid", "taxonid", "stemeasting", "stemnorthing")]
+    temp <- if (input$plotSelect==''){
+      return(NULL)
+    } else {
+      md <- plotData() %>% filter(pointstatus=="validPointID")
+      # Remove leading zeroes from tagID field
+      md$tagid <- substr(md$tagid, regexpr("[^0]", md$tagid), nchar(md$tagid))
+      md
+    }
   })
   
   
-  ###  Create and build content for "Plot Map" tab
+  
+  
+  
+  ### Create and build content for "Plot Map" tab
   ##  Create variables required for building ggplot
   # Determine pointIDs for the map of the plot/subplot using `plotSelect` input from user
   subplotPoints <- reactive({
-    temp2 <- if (input$plotSelect==''){
+    temp <- if (input$plotSelect==''){
       return(NULL)
     } else if (nchar(input$plotSelect)==12){
       c(31,33,41,49,51)
@@ -58,11 +143,13 @@ shinyServer(function(input, output, session) {
     } else {
       c(41,43,51,59,61)
     }
-    })
+  })
   
   # Determine pointIDs for mapping the corners of the plot/subplot using `plotSelect` input from user
   cornerPoints <- reactive({
-    temp3 <- if (nchar(input$plotSelect)==12){
+    temp <- if (input$plotSelect==''){
+      return(NULL)
+    } else if (nchar(input$plotSelect)==12){
       setdiff(subplotPoints(), 41)
     } else {
       setdiff(subplotPoints(), c(31,33,49,51))
@@ -72,10 +159,10 @@ shinyServer(function(input, output, session) {
   # Extract pointID easting and northing data to add to the map
   currentPlotID <- reactive({unique(plotData()$plotid)})
   mapPoints <- reactive({
-    temp4 <- if (input$plotSelect==''){
+    temp <- if (input$plotSelect==''){
       return(NULL)
     } else {
-      temp4 <- filter(pointSpatial, plotid==currentPlotID() & pointid %in% subplotPoints())
+      filter(pointSpatial, plotid==currentPlotID() & pointid %in% subplotPoints())
     }
   })
   
@@ -91,30 +178,51 @@ shinyServer(function(input, output, session) {
   
   # For caption, obtain `nestedshrubsapling` size for selected plotsubplotid, omitting "NA" and "" values
   nestedShrubSapling <- reactive({
-    plotData() %>% filter(nestedshrubsapling != "NA" & nestedshrubsapling != "") %>%
-      distinct(nestedshrubsapling) -> temp5
-    temp5 <- temp5[1,1]
+    temp <- if (input$plotSelect==''){
+      return(NULL)
+    } else {
+      nss <- plotData() %>%
+        filter(nestedshrubsapling != "NA" & nestedshrubsapling != "") %>%
+        distinct(nestedshrubsapling)
+      nss <- nss[1,1]
+    }
   })
   
   # For caption, obtain `nestedliana` size for selected plotsubplotid, omitting "NA" and "" values
   nestedLiana <- reactive({
-    plotData() %>% filter(nestedliana != "NA" & nestedliana != "") %>% distinct(nestedliana) -> temp6
-    temp6 <- temp6[1,1]
+    temp <- if (input$plotSelect==''){
+      return(NULL)
+    } else {
+      nl <- plotData() %>%
+        filter(nestedliana != "NA" & nestedliana != "") %>% 
+        distinct(nestedliana)
+      nl <- nl[1,1]
+    }
   })
   
   # For caption, obtain `nestedother` size for selected plotsubplotid, omitting "NA" and "" values
   nestedOther <- reactive({
-    plotData() %>% filter(nestedother != "NA" & nestedother != "") %>% distinct(nestedother) -> temp7
-    temp7 <- temp7[1,1]
+    temp <- if (input$plotSelect==''){
+      return(NULL)
+    } else {
+      no <- plotData() %>% 
+        filter(nestedother != "NA" & nestedother != "") %>% 
+        distinct(nestedother)
+      no <- no[1,1]
+    }
   })
   
   # Build the caption
   captionInput <- reactive({
-    paste("", "Nested Subplot Sizes:",
+    temp <- if (input$plotSelect==''){
+      return(NULL)
+    } else {
+      paste("", "Nested Subplot Sizes:",
           paste0("nestedSubplotSize (smt + sap + sis + sms) = ", nestedShrubSapling()),
           paste0("nestedSubplotSize (lia) = ", nestedLiana()),
           paste0("nestedSubplotSize (other) = ", nestedOther()),
           sep = "\n")
+    }
   })
   
   
@@ -156,7 +264,7 @@ shinyServer(function(input, output, session) {
       
       # Add corner points (and centroid if present) using high-res GPS data
       geom_point(size=3, shape=21, colour="black", fill="red", stroke=1, show.legend = FALSE) 
-      
+    
   })
   
   # Render the ggplot to output, and include plot modifications from user input
@@ -166,10 +274,10 @@ shinyServer(function(input, output, session) {
                                                  size = 2.75, shape = 21, stroke = 0.8, show.legend = TRUE)
     if (input$radio=="shape") p = p + geom_point(data = mapData(), aes(x = stemeasting, y = stemnorthing, shape = taxonid),
                                                  size = 2.75, stroke = 0.8, show.legend = TRUE) +
-                                      scale_shape_discrete(solid = FALSE)
-    if (input$checkbox) p = p + geom_text(data=mapData(), aes(x=stemeasting, y=stemnorthing, label=tagid), size=4, vjust=-1)
+        scale_shape_discrete(solid = FALSE)
+    if (input$checkbox) p = p + geom_text_repel(data=mapData(), aes(x=stemeasting, y=stemnorthing, label=tagid), size=4, nudge_x = 0.3, nudge_y = 0.3)
     p
-    }, height = 900)
+  }, height = 900)
   
   
   ##  Create .pdf download output from ggplot
@@ -185,6 +293,27 @@ shinyServer(function(input, output, session) {
   
   
   ###  Create content for Data Table tab
+  # Get data for downloading from `Plot Data` tab
+  tableData <- reactive({
+    validate(
+      need(input$plotSelect != "", "Please select a plot")
+    )
+    
+    temp <- if (input$plotSelect==''){
+      return(NULL)
+    } else {
+      td <- plotData() %>%
+        mutate(offseteasting = round(stemeasting - E1(), digits = 1)) %>%
+        mutate(offsetnorthing = round(stemnorthing - N1(), digits = 1)) %>%
+        select(nestedshrubsapling, nestedliana, nestedother, bouttype, plotid, taxonid, nestedsubplotid, 
+               tagid, supportingstemtagid, subplotid, pointid, pointstatus, offseteasting, offsetnorthing) %>%
+        arrange(nestedsubplotid, tagid)
+      td <- td[c("bouttype", "plotid", "subplotid", "nestedsubplotid", "nestedshrubsapling", "nestedliana",
+                 "nestedother", "tagid", "supportingstemtagid", "taxonid", "pointid", "pointstatus", 
+                 "offseteasting", "offsetnorthing")]
+    }
+  })
+  
   # Create download output
   output$downloadData <- downloadHandler(
     filename = function() { 
@@ -201,10 +330,6 @@ shinyServer(function(input, output, session) {
       tableData()
     })
   )
-  
-
-  
-  
   
   
 })
