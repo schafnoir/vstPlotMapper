@@ -25,9 +25,9 @@ navbarPage("NEON VST Mapper",
                                     # helpText to explain limitations of coding by shape
                                     helpText("A maximum of 6 species can be displayed when 'Shape' is selected."),
                                     
-                                    # Checkbox to select whether tagIDs are added to ggplot
-                                    h5("Add data layers:"),
-                                    checkboxInput("checkbox", label = "tagIDs", value = FALSE),
+                                    # Checkboxes to select whether additional components are added to ggplot
+                                    checkboxGroupInput("checkGroup", label = "Add data layers:", 
+                                                       choices = list("tagIDs" = "tags", "plotMarkers" = "markers")),
                                     
                                     # Download button for .pdf of Plot Map
                                     downloadButton('downloadPlotMap', 'Download (.pdf)'),

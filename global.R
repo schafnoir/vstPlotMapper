@@ -43,8 +43,8 @@ theSites <- arrange(theSites, siteid)
 plotSpatial <- read.csv("data/plotSpatialData_20161206.csv", stringsAsFactors = F, header = T)
 plotSpatial %>%
   filter(grepl('vst', applicableModules)) %>%
-  select(siteID, plotID, plotType, plotSize, decimalLatitude, decimalLongitude) %>%
-  rename(siteid=siteID, plotid=plotID, plottype=plotType, plotsize=plotSize, latitude=decimalLatitude, longitude=decimalLongitude) %>%
+  select(siteID, plotID, plotType, plotSize) %>%
+  rename(siteid=siteID, plotid=plotID, plottype=plotType, plotsize=plotSize) %>%
   arrange(siteid, plotid) -> plotSpatial
 
 ## In 'plotSpatial' data, create new 'plottype' variable that accounts for type of Tower Plot
@@ -74,8 +74,9 @@ plotSpatial %>% select(-plottype, -siteid, -plotsize) %>% rename(plottype=newTyp
 pointSpatial <- read.csv("data/pointSpatialData_20161206.csv", stringsAsFactors = F, header = T)
 pointSpatial %>% 
   filter(grepl('vst', applicableModules)) %>%
-  select(plotID, pointID, easting, northing) %>%
-  rename(plotid=plotID, pointid=pointID, pointeasting=easting, pointnorthing=northing) %>%
+  select(plotID, pointID, decimalLatitude, decimalLongitude, easting, northing) %>%
+  rename(plotid=plotID, pointid=pointID, latitude=decimalLatitude, longitude=decimalLongitude, 
+         pointeasting=easting, pointnorthing=northing) %>%
   arrange(plotid, pointid) %>%
   mutate(plotpointid = paste(plotid, pointid, sep = "_")) -> pointSpatial
 

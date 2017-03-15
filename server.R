@@ -275,7 +275,9 @@ shinyServer(function(input, output, session) {
     if (input$radio=="shape") p = p + geom_point(data = mapData(), aes(x = stemeasting, y = stemnorthing, shape = taxonid),
                                                  size = 2.75, stroke = 0.8, show.legend = TRUE) +
         scale_shape_discrete(solid = FALSE)
-    if (input$checkbox) p = p + geom_text_repel(data=mapData(), aes(x=stemeasting, y=stemnorthing, label=tagid), size=4, nudge_x = 0.3, nudge_y = 0.3)
+    if ("tags" %in% input$checkGroup) p = p + geom_text_repel(data=mapData(), aes(x=stemeasting, y=stemnorthing, label=tagid), size=4, 
+                                                  nudge_x = 0.3, nudge_y = 0.3)
+    if ("markers" %in% input$checkGroup) p = p + geom_label(aes(label = pointid), fill = "#FF6C5E", show.legend = FALSE)
     p
   }, height = 900)
   
