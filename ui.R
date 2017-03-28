@@ -1,4 +1,5 @@
 library(shiny)
+library(shinythemes)
 library(dplyr)
 
 # Define UI for Veg Structure Plot Mapper application
@@ -10,7 +11,7 @@ navbarPage("NEON VST Mapper",
                                     # Select siteID from a list of sites with mapped individuals
                                     selectInput(
                                       inputId = "siteChoice",
-                                      label = "Select a NEON site",
+                                      label = "Select a NEON site:",
                                       c(Choose = '', theSites$siteid),
                                       selectize = TRUE
                                     ), # End selectInput
@@ -30,8 +31,8 @@ navbarPage("NEON VST Mapper",
                                                        choices = list("tagIDs" = "tags", "plotMarkers" = "markers")),
                                     
                                     # Download button for .pdf of Plot Map
-                                    downloadButton('downloadPlotMap', 'Download (.pdf)'),
-                                    
+                                    downloadButton('downloadPlotMap', 'Download (.pdf)', class="btn btn-primary"),
+                                   
                                     # Set width of sidebarPanel
                                     width = 3
                                     
@@ -50,7 +51,7 @@ navbarPage("NEON VST Mapper",
                     fluidRow(
                       column(width = 12, 
                              wellPanel(helpText("Retrieve data from tagged individuals in the plot"), 
-                                       downloadButton('downloadData', 'Download (.csv)')
+                                       downloadButton('downloadData', 'Download (.csv)', class="btn btn-primary")
                              ) # End wellPanel
                       ) # End column
                     ), # End first fluidRow
@@ -108,7 +109,8 @@ navbarPage("NEON VST Mapper",
                       column(width=2)
                     )
             ) # End About tabPanel
-
+,
+theme = shinytheme("cerulean")
 ) # End navbarPage
 
 

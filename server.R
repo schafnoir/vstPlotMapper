@@ -4,6 +4,7 @@ library(stringr)
 library(ggplot2)
 library(ggrepel)
 library(httr)
+library(rmarkdown)
 
 # Define server logic required to create plot map
 shinyServer(function(input, output, session) {
@@ -94,7 +95,7 @@ shinyServer(function(input, output, session) {
   
   # Populate second drop-down with plot list from above
   output$plotChoices <- renderUI({
-    selectInput("plotSelect", "Select a plot to map", c(Choose='', choices = thePlots()),
+    selectInput("plotSelect", "Select a plot to map:", c(Choose='', choices = thePlots()),
                 selectize = TRUE, multiple = FALSE)
   })
   
@@ -276,22 +277,30 @@ shinyServer(function(input, output, session) {
                                                  size = 2.75, stroke = 0.8, show.legend = TRUE) +
         scale_shape_discrete(solid = FALSE)
     if ("tags" %in% input$checkGroup) p = p + geom_text_repel(data=mapData(), aes(x=stemeasting, y=stemnorthing, label=tagid), size=4, 
-                                                  nudge_x = 0.3, nudge_y = 0.3)
+                                                              nudge_x = 0.3, nudge_y = 0.3)
     if ("markers" %in% input$checkGroup) p = p + geom_label(aes(label = pointid), fill = "#FF6C5E", show.legend = FALSE)
     p
   }, height = 900)
   
   
+  
   ##  Create .pdf download output from ggplot
   output$downloadPlotMap <- downloadHandler(
-    filename = function(){
+    filename = function() {
       paste0(paste(unique(plotData()$plotid), unique(plotData()$subplotid), sep = "_"), '.pdf')
     },
+    
     content = function(file) {
-      ggsave(file, width = 6.5, units = "in", device = "pdf")
+      src <- normalizePath('plotMap.Rmd')
+      
+      owd <- setwd(tempdir())
+      on.exit(setwd(owd))
+      file.copy(src, 'plotMap.Rmd', overwrite = TRUE)
+      
+      out <- render('plotMap.Rmd', pdf_document())
+      file.rename(out, file)
     }
   )
-  
   
   
   ###  Create content for Data Table tab
