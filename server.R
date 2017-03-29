@@ -4,7 +4,7 @@ library(stringr)
 library(ggplot2)
 library(ggrepel)
 library(httr)
-library(rmarkdown)
+
 
 # Define server logic required to create plot map
 shinyServer(function(input, output, session) {
@@ -284,21 +284,73 @@ shinyServer(function(input, output, session) {
   
   
   
-  ##  Create .pdf download output from ggplot
+  ###  Create .pdf download output from ggplot
+  ##  Build the ggplot object for download and printing
+  ggDownload <- reactive({
+    ggplot(mapPoints(), aes(pointeasting, pointnorthing)) +
+    # Set the aspect ratio using the mapPoint data
+    coord_fixed() +
+    
+    # Add title, axis labels, and caption to hold nestedSubplotSize data
+    labs(title = paste0("Plot Map: ", input$plotSelect),
+         x = "Easting (meters)",
+         y = "Northing (meters)",
+         caption = captionInput()) +
+    
+    # Remove axis and grid lines from panel, place legend at bottom, and size text output for printing/download
+    theme(panel.grid = element_blank()) +
+    theme(plot.title = element_text(size=11, face = "bold")) +
+    theme(axis.text = element_text(size = 8)) +
+    theme(axis.title = element_text(size = 9, face = "bold")) +
+    theme(legend.text = element_text(size=7)) +
+    
+    # Set axis ticks to begin at minimum easting and northing values in mapPoints, and space every 5 meters
+    scale_x_continuous(breaks=seq(round(min(mapPoints()$pointeasting)), max(mapPoints()$pointeasting),5)) +
+    scale_y_continuous(breaks=seq(round(min(mapPoints()$pointnorthing)), max(mapPoints()$pointnorthing),5)) +
+    
+    # Rotate y-axis labels 90-degrees
+    theme(axis.text.y  = element_text(angle=90, hjust=0.5)) +
+    
+    # Draw perimeter of plot/subplot
+    geom_segment(x = E1(), y = N1(), xend = E2(), yend = N2(), color = "grey30") +
+    geom_segment(x = E2(), y = N2(), xend = E4(), yend = N4(), color = "grey30") +
+    geom_segment(x = E1(), y = N1(), xend = E3(), yend = N3(), color = "grey30") +
+    geom_segment(x = E3(), y = N3(), xend = E4(), yend = N4(), color = "grey30") +
+    
+    # Add corner points (and centroid if present) using high-res GPS data
+    geom_point(size=2, shape=21, colour="black", fill="red", stroke=1, show.legend = FALSE)
+    
+  })
+  
+  
+  ##  Add layers to download plot based on user input
+  ggFinalDownload <- reactive({
+    p = ggDownload()
+    if (input$radio=="color") p = p + 
+    geom_point(data = mapData(), aes(x = stemeasting, y = stemnorthing, color = taxonid), size = 2, shape = 21, stroke = 0.5, show.legend = TRUE)
+  
+    if (input$radio=="shape") p = p +
+    geom_point(data = mapData(), aes(x = stemeasting, y = stemnorthing, shape = taxonid), size = 2, stroke = 0.5, show.legend = TRUE) +
+    scale_shape_discrete(solid = FALSE)
+  
+    if ("tags" %in% input$checkGroup) p = p + 
+    geom_text_repel(data=mapData(), aes(x=stemeasting, y=stemnorthing, label=tagid), size=2, nudge_x = 0.3, nudge_y = 0.3)
+  
+    if ("markers" %in% input$checkGroup) p = p + geom_label(aes(label = pointid), fill = "#FF6C5E", colour="white", size=2, show.legend = FALSE)
+    p
+  })
+  
+  
+  ##  Pipe ggDownload output to .pdf file for local saving
   output$downloadPlotMap <- downloadHandler(
-    filename = function() {
+    filename = function(){
       paste0(paste(unique(plotData()$plotid), unique(plotData()$subplotid), sep = "_"), '.pdf')
     },
-    
     content = function(file) {
-      src <- normalizePath('plotMap.Rmd')
-      owd <- setwd(tempdir())
-      on.exit(setwd(owd))
-      file.copy(src, 'plotMap.Rmd', overwrite = TRUE)
-      out <- render('plotMap.Rmd', pdf_document(latex_engine='xelatex'), clean = TRUE)
-      file.rename(out, file)
+      ggsave(file, plot = ggFinalDownload(), width = 6.5, units = "in", device = "pdf")
     }
   )
+  
   
   
   ###  Create content for Data Table tab
