@@ -291,6 +291,10 @@ shinyServer(function(input, output, session) {
     },
     
     content = function(file) {
+      src <- normalizePath('plotMap.Rmd')
+      owd <- setwd(tempdir())
+      on.exit(setwd(owd))
+      file.copy(src, 'plotMap.Rmd', overwrite = TRUE)
       out <- render('plotMap.Rmd', pdf_document(latex_engine='xelatex'), clean = TRUE)
       file.rename(out, file)
     }
