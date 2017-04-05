@@ -257,6 +257,7 @@ shinyServer(function(input, output, session) {
       theme(axis.text = element_text(size = 12)) +
       theme(axis.title = element_text(size = 14, face = "bold")) +
       theme(legend.text = element_text(size=12)) +
+      theme(title = element_text(size=14)) +
       
       # Set axis ticks to begin at minimum easting and northing values in mapPoints, and space every 5 meters
       scale_x_continuous(breaks=seq(round(min(mapPoints()$pointeasting)), max(mapPoints()$pointeasting),5)) +
