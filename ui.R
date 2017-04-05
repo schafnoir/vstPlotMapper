@@ -3,8 +3,7 @@ library(shinythemes)
 library(dplyr)
 
 # Define UI for Veg Structure Plot Mapper application
-
-navbarPage("NEON VST Mapper",
+navbarPage("NEON VST Mapper", 
            tabPanel("Plot Map",
                     sidebarLayout(
                                   sidebarPanel(
@@ -40,6 +39,9 @@ navbarPage("NEON VST Mapper",
                                   
                                   # Main panel of the page
                                   mainPanel(
+                                    # Display plot title
+                                    h4(textOutput("plotTitle")),
+                                    
                                     # Display ggplot
                                     plotOutput("plotMap")
                                     
@@ -97,14 +99,16 @@ navbarPage("NEON VST Mapper",
                                  hierarchically first by `nestedsubpotid` and then by `tagID`, in order to aid in finding tagged individuals within the plot. Clicking the
                                  'Download (.csv)' button allows plot-level data to be readily organized into a checklist when working in the field. In addition to
                                  standard NEON fields defined elsewhere, the 'Plot Data' table includes the following fields:"),
-                               p(strong("pointstatus:"), "This field shows 'notMapped' if a pointID was not entered into Fulcrum, displays 'validPointID' if the pointID
+                               p(h5("pointid"), "The pointID within the plot that was used to map a given woody individual when 'stemDistance' and 'stemAzimuth' were 
+                                 originally recorded."),
+                               p(h5("pointstatus"), "This field shows 'notMapped' if a pointID was not entered into Fulcrum, displays 'validPointID' if the pointID
                                  chosen for mapping corresponds to a valid pointID with high-resolution GPS data, and reports 'errorPointID' in the event that a
                                  pointID was chosen for mapping that does not have high-resolution GPS data associated with it. Only records with a 'validPointID' are
                                  mapped in the 'Plot Map' tab."),
-                               p(strong("offseteasting:"), "The east/west distance, in meters, between the mapped woody individual and the marker at the SW corner
-                                 of the plot."),
-                               p(strong("offsetnorthing:"), "The north/south distance, in meters, between the mapped woody individual and the marker at the SW corner
-                                 of the plot.")
+                               p(h5("offseteasting"), "The east/west distance, in meters, between the mapped woody individual and the marker at the SW corner
+                                 of the plot (20m x 20m plots) or subplot (40m x 40m plots)."),
+                               p(h5("offsetnorthing"), "The north/south distance, in meters, between the mapped woody individual and the marker at the SW corner
+                                 of the plot (20m x 20m plots) or subplot (40m x 40m plots).")
                              )),
                       column(width=2)
                     )

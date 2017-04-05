@@ -34,7 +34,8 @@ shinyServer(function(input, output, session) {
     # Select needed columns from `fulcrumData`
     sd <- fulcrumData() %>% 
       select(nestedshrubsapling, nestedliana, nestedother, bouttype, plotid, siteid, taxonid,
-               subplotid, nestedsubplotid, tagid, supportingstemtagid, pointid, stemdistance, stemazimuth)
+             subplotid, nestedsubplotid, tagid, supportingstemtagid, pointid, stemdistance, stemazimuth,
+             `_record_id`, load_status)
     
     # Join with 'plotSpatial', and only keep records with matching plotid
     sd <- inner_join(sd, plotSpatial, by = "plotid")
@@ -226,13 +227,19 @@ shinyServer(function(input, output, session) {
     }
   })
   
-  
+  ##  Build plot title
+  output$plotTitle <- renderText({
+    validate(
+      need(input$plotSelect != "", "Please select a plot to map")
+    )
+    paste0("Plot Map: ", input$plotSelect)
+  })
   
   ##  Build the ggplot object for display
   ggMap <- reactive({
     # Account for the fact that input is null before user selects a plot to map
     validate(
-      need(input$plotSelect != "", "Please select a plot to map")
+      need(input$plotSelect != "", "")
     )
     # Create the basic ggplot from the mapPoints data
     ggplot(mapPoints(), aes(pointeasting, pointnorthing)) +
@@ -241,14 +248,12 @@ shinyServer(function(input, output, session) {
       coord_fixed() +
       
       # Add title, axis labels, and caption to hold nestedSubplotSize data
-      labs(title = paste0("Plot Map: ", input$plotSelect),
-           x = "Easting (meters)",
+      labs(x = "Easting (meters)",
            y = "Northing (meters)",
            caption = captionInput()) +
       
       # Remove axis and grid lines from panel
       theme(panel.grid = element_blank()) +
-      theme(title = element_text(size=14)) +
       theme(axis.text = element_text(size = 12)) +
       theme(axis.title = element_text(size = 14, face = "bold")) +
       theme(legend.text = element_text(size=12)) +
@@ -353,8 +358,8 @@ shinyServer(function(input, output, session) {
   
   
   
-  ###  Create content for Data Table tab
-  # Get data for downloading from `Plot Data` tab
+  ###  Create content for Plot Data tab
+  # Get data for the table based on user 'plotSelect' input
   tableData <- reactive({
     validate(
       need(input$plotSelect != "", "Please select a plot")
@@ -363,34 +368,44 @@ shinyServer(function(input, output, session) {
     temp <- if (input$plotSelect==''){
       return(NULL)
     } else {
+      # Calculate `offseteasting` and `offsetnorthing`
       td <- plotData() %>%
         mutate(offseteasting = round(stemeasting - E1(), digits = 1)) %>%
         mutate(offsetnorthing = round(stemnorthing - N1(), digits = 1)) %>%
-        select(nestedshrubsapling, nestedliana, nestedother, bouttype, plotid, taxonid, nestedsubplotid, 
-               tagid, supportingstemtagid, subplotid, pointid, pointstatus, offseteasting, offsetnorthing) %>%
+        rename(fulcrum_id=`_record_id`)
+      # Replace `fulcrum_id` field values with new 'Edit Record' button
+      td$fulcrum_id <- paste0("https://web.fulcrumapp.com/records/", td$fulcrum_id)
+      td$fulcrum_id <- paste0('<a href="',td$fulcrum_id,'"',' target="_blank" class="btn btn-primary">Edit Record</a>')
+      td$fulcrum_id[td$load_status!="NONE"] <- paste0('<a href="',td$fulcrum_id[td$load_status!="NONE"],'"',' target="_blank" class="btn btn-primary">View Loaded Record</a>')
+      # Select fields and arrange rows
+      td <- td %>%
+        select(fulcrum_id, bouttype, plotid, taxonid, nestedsubplotid, tagid, supportingstemtagid, subplotid, pointid,
+               pointstatus, offseteasting, offsetnorthing) %>%
         arrange(nestedsubplotid, tagid)
-      td <- td[c("bouttype", "plotid", "subplotid", "nestedsubplotid", "nestedshrubsapling", "nestedliana",
-                 "nestedother", "tagid", "supportingstemtagid", "taxonid", "pointid", "pointstatus", 
-                 "offseteasting", "offsetnorthing")]
+      td <- td[c("fulcrum_id", "bouttype", "plotid", "subplotid", "nestedsubplotid", "tagid", "supportingstemtagid", 
+                 "taxonid", "pointid", "pointstatus", "offseteasting", "offsetnorthing")]
     }
   })
   
-  # Create download output
+  # Create output table from tableData reactive variable
+  output$table <- DT::renderDataTable(
+    DT::datatable(
+      tableData(), escape = FALSE
+    )
+  )
+  
+  # Create download .csv
   output$downloadData <- downloadHandler(
     filename = function() { 
       paste0(paste(unique(plotData()$plotid), unique(plotData()$subplotid), sep = "_"), '.csv') 
     },
     content = function(file) {
-      write.csv(tableData(), file, row.names = FALSE)
+      td = tableData() %>% select(-fulcrum_id)
+      write.csv(td, file, row.names = FALSE)
     }
   )
   
-  # Create output table from tableData reactive variable
-  output$table <- DT::renderDataTable(
-    DT::datatable({
-      tableData()
-    })
-  )
+  
   
   
 })
