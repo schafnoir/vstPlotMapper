@@ -24,7 +24,7 @@ get_Fulcrum_data <- function(api_token, sql){
 
 ### Setup Fulcrum querying to obtain data for drop-downs and for plotting and download
 # Define api-token
-api_token = "6ce6d01c4ec984e68fcecbb04d96f71a229f1db388fe1acd90c1fb6ba77a1daf"
+api_token = "3ab235047ec293b27f06f6819e81b291435f9c61282345ff1de9624f744034b4233a6fcd1b87c3c2"
 
 # Define SQL query to generate a list of sites that have Mapping & Tagging data
 siteidQuery <- URLencode('SELECT DISTINCT siteid FROM "(TOS) VST: Mapping and Tagging [PROD]"')
