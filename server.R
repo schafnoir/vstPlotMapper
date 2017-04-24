@@ -391,7 +391,7 @@ shinyServer(function(input, output, session) {
   # Create output table from tableData reactive variable
   output$table <- DT::renderDataTable(
     DT::datatable(
-      tableData(), escape = FALSE
+      tableData(), escape = FALSE, filter = "top"
     )
   )
   

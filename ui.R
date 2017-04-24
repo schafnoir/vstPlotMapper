@@ -59,7 +59,7 @@ navbarPage("NEON VST Mapper",
                     ), # End first fluidRow
                     
                     fluidRow(
-                      column(width=10, DT::dataTableOutput("table"))
+                      column(width=12, DT::dataTableOutput("table"))
                     ) # End second fluidRow
                     
             ), # End Plot Data tabPanel
