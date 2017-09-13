@@ -1,0 +1,108 @@
+---
+title: "VST Plot Mapper notes"
+author: "Courtney Meier"
+date: "6/23/2017"
+output: 
+  pdf_document: 
+    latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(dplyr)
+```
+
+##  Adding a Leaflet map
+### Resources
+* https://rstudio.github.io/leaflet/shiny.html
+* Leaflet tutorial using third-party tiles: https://www.youtube.com/watch?v=7UzD0P2BggM
+
+### Layout of Shiny app
+* 4 tabs:
+    - Site Mapper: Leaflet map of all plots at selected site
+    - Plot Mapper: ggplot of all mapped individuals within the selected plot from site selected on Site Mapper tab, option to download .pdf
+    - Plot Data: Table of all tagged individuals within the selected plot, option to download .csv
+    - About: Description of functionality for previous 3 tabs
+* Site Mapper tab ideas:
+    - Floating side panel on the left, main background panel for displaying map
+    - Map: Build plots/subplots for map using plotSpatial and pointSpatial data, and SpatialPolygons Data Frame; already have code for this on devTOS for VST data checking.
+    - Map: Initial zoom to North America?
+    - Map: Auto-zoom to range of UTMs provided for plots at the site
+    - Map: Clicking on a plot displays -> plotID, count of tagged stems
+    - Map: Color of plots is based on color gradient associated with stem count (density)
+    - Sidebar: Dropdown -> List of sites for which VST data are available
+    - Sidebar: Dropdown -> Fill colors for plot polygons -> red, blue, orange, green
+    - Sidebar: Radio buttons for map background -> Imagery (ESRI WorldMap), topographic (NatGeo?)
+    - Sidebar: Control which variable is used to color plots: e.g., Density plot of stem count, based on plot/subplot data for all plots/subplots at selected site; color gradient fill using color selected in dropdown above; also could color plots by number of problem records within the plot.
+    - Sidebar: Download screenshot of map? -> This may be difficult
+    
+    
+
+### Dev ideas, next steps
+* Modify global.R to remove lat/long from `plotSpatial` -> going to use spatial data from `pointSpatial` for display instead -> need to figure out whether UTMs can be used with Leaflet, or whether decimal lat/long is needed.
+* Begin testing of Leaflet code in normal R in environment, use ORNL as test case.
+
+
+##  VegStructure Mapping Errors
+Discoveries related to VegStructure data during development of Plot Mapper Shiny app:
+
+* 10 records have no subplotID identified, need to have this field be required in future.
+* Technicians are using additional pointIDs than those specified for mapping.
+
+Quantifying mapping errors:
+
+```{r pointErrors}
+# pointids in vstInput dataset
+usedPoints <- sort(unique(vstInput$pointid))
+
+# pointids expected based on protocol
+expPoints <- sort(unique(as.integer(pointSpatial$pointid)))
+extraPoints <- setdiff(usedPoints, expPoints)
+
+# Summary of rows in 'vstInput' associated with unexpected pointids
+vstInput %>% filter(pointid %in% extraPoints) -> mapError
+mapError %>% count(siteid, pointid)
+mapError %>% count(siteid)
+nrow(mapError)
+
+### pointid errors
+vstInput %>% 
+  mutate(pointstatus = ifelse(is.na(pointid), "notMapped",
+                              ifelse(plottype=="lgTower" & pointid %in% expLarge, "validPointID",
+                                     ifelse(pointid %in% expSmall, "validPointID",
+                                            "errorPointID")))) -> vstInput
+
+```
+
+### Summary of mapping errors
+
+* Total number of mapped records affected = 720
+* BART has greatest number of affected records = 541
+* HARV has second most = 68
+* D01 represents 85% of the problem records.
+
+Closer examination of problems:
+
+* `mapStatus == pointIDError` assigned if chosen point not one of expected points based on plottype (e.g., smTower, lgTower, distributed).
+* BART pointIDError = 549, which is high as expected.
+* SRER pointIDError = 228, which is much higher than expected.
+* Code for plotSpatial table assigned Tower Plots == "smTower", based on plotsize=="400" being present in list of plotsize values for SRER Tower Plots -> is the plotSpatial table correct? I thought that SRER had large Tower Plots?
+* At SRER, all pointIDError values associated with pointID = 23,39,43,59 which are perimeter cardinal direction pointIDs that would be acceptable for mapping in a lgTower plot, but would not be acceptable in a smTower plot. Result suggests that plotSize values for SRER Tower Plots in Plot Spatial data input file are incorrect.
+
+### Making the ggplot
+
+* Helpful hints for axes here: http://www.cookbook-r.com/Graphs/Axes_(ggplot2)/
+* Using conditionals to add plot features - will be useful for drawing geom_segments() depending on subplotid: http://stackoverflow.com/questions/39592827/conditional-track-in-a-plot-r-ggplot2
+* Adding tagID labels: http://docs.ggplot2.org/current/geom_text.html
+* Adding caption https://www.r-bloggers.com/subtitles-and-captions-with-ggplot2-v-2-2-0/
+* More interesting possibilities with text and text labels, this time with lines indicating which label goes to which dot: http://www.sthda.com/english/wiki/ggplot2-texts-add-text-annotations-to-a-graph-in-r-software
+* Color mapped points by taxonID, make size dependent on diameter (latter eventually, since structure data aren't in Fulcrum yet)
+* Consider making tick marks begin at origin (SW corner), and then going in 5 m increments from there; could also remove axis labels since techs may not use easting and northing data.
+* For point labels on map, have 3 radio buttons: no labels, labels above points, and labels offset from points (repel function) with lines connected to point.
+* Reactive function: Consider allowing user to change how mapped individuals are displayed (color coded, shape coded by taxonid) so that color blind techs can use the plot and techs can print on B&W paper.
+
+
+### Next steps: Leaflet Map
+
+* Blah

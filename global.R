@@ -40,7 +40,7 @@ theSites <- arrange(theSites, siteid)
 ## Read in plot spatial data, filter to applicableModules with 'vst', select desired columns, and rename
 # fields to match Fulcrum data. Plot spatial data needed for 'plotSize' variable, and assigning of 
 # new plottype variable to account for different types of Tower Plots - smStat, lgStat
-plotSpatial <- read.csv("data/plotSpatialData_20161206.csv", stringsAsFactors = F, header = T)
+plotSpatial <- read.csv("data/plotSpatialData_20170905.csv", stringsAsFactors = F, header = T)
 plotSpatial %>%
   filter(grepl('vst', applicableModules)) %>%
   select(siteID, plotID, plotType, plotSize) %>%
@@ -71,7 +71,7 @@ plotSpatial %>% select(-plottype, -siteid, -plotsize) %>% rename(plottype=newTyp
 
 ## Read in point spatial data, select desired columns, filter to applicableModule with 'vst', and 
 ## rename fields to match Fulcrum data. Then create 'plotpointid' for joining with 'vstInput'
-pointSpatial <- read.csv("data/pointSpatialData_20161206.csv", stringsAsFactors = F, header = T)
+pointSpatial <- read.csv("data/pointSpatialData_20170905.csv", stringsAsFactors = F, header = T)
 pointSpatial %>% 
   filter(grepl('vst', applicableModules)) %>%
   select(plotID, pointID, decimalLatitude, decimalLongitude, easting, northing) %>%
