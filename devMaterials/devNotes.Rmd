@@ -40,6 +40,15 @@ library(dplyr)
     
 
 ### Dev ideas, next steps
+* Code to identify duplicates expected for **tagID**, and select the latest value
+```
+si <- select(si, -uid)
+si <- distinct(si)
+si_last <- si %>%
+            group_by(individualID, date, phenophaseName) %>%
+            filter(editedDate==max(editedDate))
+```
+
 * Modify global.R to remove lat/long from `plotSpatial` -> going to use spatial data from `pointSpatial` for display instead -> need to figure out whether UTMs can be used with Leaflet, or whether decimal lat/long is needed.
 * Begin testing of Leaflet code in normal R in environment, use ORNL as test case.
 
