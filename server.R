@@ -376,8 +376,8 @@ shinyServer(function(input, output, session) {
         rename(fulcrum_id=`_record_id`)
       # Replace `fulcrum_id` field values with new 'Edit Record' button
       td$fulcrum_id <- paste0("https://web.fulcrumapp.com/records/", td$fulcrum_id)
-      td$fulcrum_id <- paste0('<a href="',td$fulcrum_id,'"',' target="_blank" class="btn btn-primary">Edit Record</a>')
-      td$fulcrum_id[td$load_status!="NONE"] <- paste0('<a href="',td$fulcrum_id[td$load_status!="NONE"],'"',' target="_blank" class="btn btn-primary">View Loaded Record</a>')
+      td$fulcrum_id[td$load_status=="NONE"] <- paste0('<a href="',td$fulcrum_id[td$load_status=="NONE"],'"',' target="_blank" class="btn btn-primary">Edit Record</a>')
+      td$fulcrum_id[td$load_status!="NONE"] <- paste0('<a href="',td$fulcrum_id[td$load_status!="NONE"],'"',' target="_blank" class="btn btn-info">View Loaded Record</a>')
       # Select fields and arrange rows
       td <- td %>%
         select(fulcrum_id, bouttype, plotid, taxonid, nestedsubplotid, tagid, supportingstemtagid, subplotid, pointid,
