@@ -1,9 +1,9 @@
 library(shiny)
-library(dplyr)
+#library(dplyr)
 library(stringr)
 library(ggplot2)
 library(ggrepel)
-library(httr)
+#library(httr)
 
 
 # Define server logic required to create plot map
@@ -11,7 +11,9 @@ shinyServer(function(input, output, session) {
   ### Query data from Fulcrum based on site selected by user
   # Construct Fulcrum query
   dataQuery <- reactive({
-    paste(URLencode('SELECT * FROM "(TOS) VST: Mapping and Tagging [PROD]"'),
+    paste(URLencode('SELECT nestedshrubsapling, nestedliana, nestedother, bouttype, plotid, siteid, taxonid,
+             subplotid, nestedsubplotid, tagid, supportingstemtagid, pointid, stemdistance, stemazimuth,
+             _record_id, load_status FROM "(TOS) VST: Mapping and Tagging [PROD]"'),
           URLencode(paste0("WHERE siteid LIKE '", input$siteChoice, "'")),
           sep = "%20")
   })
@@ -32,10 +34,10 @@ shinyServer(function(input, output, session) {
       return(NULL)
     } else {
     # Select needed columns from `fulcrumData`
-    sd <- fulcrumData() %>% 
-      select(nestedshrubsapling, nestedliana, nestedother, bouttype, plotid, siteid, taxonid,
-             subplotid, nestedsubplotid, tagid, supportingstemtagid, pointid, stemdistance, stemazimuth,
-             `_record_id`, load_status)
+    sd <- fulcrumData() #%>% 
+    #  select(nestedshrubsapling, nestedliana, nestedother, bouttype, plotid, siteid, taxonid,
+    #         subplotid, nestedsubplotid, tagid, supportingstemtagid, pointid, stemdistance, stemazimuth,
+    #         `_record_id`, load_status)
     
     # Join with 'plotSpatial', and only keep records with matching plotid
     sd <- inner_join(sd, plotSpatial, by = "plotid")
