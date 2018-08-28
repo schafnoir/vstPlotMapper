@@ -1,13 +1,32 @@
-library(shiny)
-#library(dplyr)
-library(stringr)
-library(ggplot2)
-library(ggrepel)
-#library(httr)
-
-
-# Define server logic required to create plot map
+### Define server logic required to create plot map
 shinyServer(function(input, output, session) {
+  
+  ### Construct menu content for siteID sidebar drop-down
+  ##  Create filtered siteSelect dropdown from selected domainID
+  theSites <- reactive({
+    # Provide full list of sites if no domain is selected
+    temp <- if (input$domainSelect==''){
+      domain_site %>% select(siteid)
+    } else {
+      # reduce siteIDs to the domainID chosen
+      domain_site %>% filter(domainid==input$domainSelect) %>% select(siteid)
+    }
+  })
+  
+  ##  Render output to siteID dropdown
+  output$siteSelect <- renderUI({
+    if(input$domainSelect==''){
+      selectInput("siteChoice", "Select a NEON site:", c(Choose = '', choices = theSites()))
+    } else if (nrow(theSites())==1) {
+      textInput("siteChoice", "Select a NEON site:", value = theSites())
+    } else {
+      selectInput("siteChoice", "Select a NEON site:", c(Choose = '', choices = theSites()),
+                  selectize = TRUE, multiple = FALSE)
+    }
+  })
+  
+  
+  
   ### Query data from Fulcrum based on site selected by user
   # Construct Fulcrum query
   dataQuery <- reactive({
@@ -34,10 +53,7 @@ shinyServer(function(input, output, session) {
       return(NULL)
     } else {
     # Select needed columns from `fulcrumData`
-    sd <- fulcrumData() #%>% 
-    #  select(nestedshrubsapling, nestedliana, nestedother, bouttype, plotid, siteid, taxonid,
-    #         subplotid, nestedsubplotid, tagid, supportingstemtagid, pointid, stemdistance, stemazimuth,
-    #         `_record_id`, load_status)
+    sd <- fulcrumData() 
     
     # Join with 'plotSpatial', and only keep records with matching plotid
     sd <- inner_join(sd, plotSpatial, by = "plotid")
@@ -86,7 +102,7 @@ shinyServer(function(input, output, session) {
   
   
   
-  ###  Construct menu content for sidebar drop-downs
+  ###  Construct menu content for additional sidebar drop-downs
   # Obtain a list of plots available for the site selected by the user
   thePlots <- reactive({
     temp <- if (input$siteChoice==''){
@@ -100,7 +116,7 @@ shinyServer(function(input, output, session) {
   output$plotChoices <- renderUI({
     selectInput("plotSelect", "Select a plot to map:", c(Choose='', choices = thePlots()),
                 selectize = TRUE, multiple = FALSE)
-  })
+ })
   
   
   
@@ -231,7 +247,7 @@ shinyServer(function(input, output, session) {
   
   ##  Build plot title
   output$plotTitle <- renderText({
-    validate(
+    shiny::validate(
       need(input$plotSelect != "", "Please select a plot to map")
     )
     paste0("Plot Map: ", input$plotSelect)
@@ -240,7 +256,7 @@ shinyServer(function(input, output, session) {
   ##  Build the ggplot object for display
   ggMap <- reactive({
     # Account for the fact that input is null before user selects a plot to map
-    validate(
+    shiny::validate(
       need(input$plotSelect != "", "")
     )
     # Create the basic ggplot from the mapPoints data
@@ -364,7 +380,7 @@ shinyServer(function(input, output, session) {
   ###  Create content for Plot Data tab
   # Get data for the table based on user 'plotSelect' input
   tableData <- reactive({
-    validate(
+    shiny::validate(
       need(input$plotSelect != "", "Please select a plot")
     )
     

@@ -1,8 +1,4 @@
-library(shiny)
-library(shinythemes)
-library(dplyr)
-
-# Define UI for Veg Structure Plot Mapper application
+### Define UI for Veg Structure Plot Mapper application
 navbarPage("NEON VST Mapper", 
            tabPanel("About",
                     fluidRow(
@@ -61,16 +57,20 @@ navbarPage("NEON VST Mapper",
            tabPanel("Plot Map",
                     sidebarLayout(
                                   sidebarPanel(
-                                    # Select siteID from a list of sites with mapped individuals
+                                    # Select domainID from list of domains with VST data
                                     selectInput(
-                                      inputId = "siteChoice",
-                                      label = "Select a NEON site:",
-                                      c(Choose = '', theSites$siteid),
-                                      selectize = TRUE
-                                    ), # End selectInput
+                                      inputId = "domainSelect",
+                                      label = "Select a NEON domain:",
+                                      c(Choose = '', theDomains),
+                                      selectize = TRUE,
+                                      multiple = FALSE
+                                    ), #  End selectInput
+                                    
+                                    # Select siteID filtered by selected domainID
+                                    uiOutput(outputId = "siteSelect"),
                                     
                                     # Select plotIDs based on the 'siteChoice' above
-                                    uiOutput("plotChoices"),
+                                    uiOutput(outputId = "plotChoices"),
                                     
                                     # Radio buttons to determine whether taxonid is coded by color or shape
                                     radioButtons("radio", label = "Code taxonID by:",
