@@ -32,7 +32,7 @@ shinyServer(function(input, output, session) {
   dataQuery <- reactive({
     paste(URLencode('SELECT nestedshrubsapling, nestedliana, nestedother, bouttype, plotid, siteid, taxonid,
              subplotid, nestedsubplotid, tagid, supportingstemtagid, pointid, stemdistance, stemazimuth,
-             _record_id, load_status FROM "(TOS) VST: Mapping and Tagging [PROD]"'),
+             _record_id, load_status FROM d0b95d92-3345-4b40-9767-c28ddbbacfae'),
           URLencode(paste0("WHERE siteid LIKE '", input$siteChoice, "'")),
           sep = "%20")
   })

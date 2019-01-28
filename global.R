@@ -108,7 +108,8 @@ get_Fulcrum_data <- function(api_token, sql){
 ######################
 ### Filter 'domain_site' list to only those domains/sites with data in Fulcrum VST M&T table
 # Define SQL query to generate a list of sites that have Mapping & Tagging data
-siteidQuery <- URLencode('SELECT DISTINCT siteid FROM "(TOS) VST: Mapping and Tagging [PROD]"')
+# VST: Mapping and Tagging [PROD] form_id is used for query.
+siteidQuery <- URLencode('SELECT DISTINCT siteid FROM d0b95d92-3345-4b40-9767-c28ddbbacfae')
 
 # Query Fulcrum for list of siteid values that exist in the data, remove 'NA'
 sitesWithData <- get_Fulcrum_data(api_token = api_token, sql = siteidQuery)
