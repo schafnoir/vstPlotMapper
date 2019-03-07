@@ -30,9 +30,9 @@ shinyServer(function(input, output, session) {
   ### Query data from Fulcrum based on site selected by user
   # Construct Fulcrum query
   dataQuery <- reactive({
-    paste(URLencode('SELECT nestedshrubsapling, nestedliana, nestedother, bouttype, plotid, siteid, taxonid,
-             subplotid, nestedsubplotid, tagid, supportingstemtagid, pointid, stemdistance, stemazimuth,
-             _record_id, load_status FROM "d0b95d92-3345-4b40-9767-c28ddbbacfae"'),
+    paste(URLencode('SELECT nestedshrubsapling, nestedliana, nestedother, recordtype, plotid, siteid, taxonid,
+                    subplotid, nestedsubplotid, tagid, supportingstemtagid, pointid, stemdistance, stemazimuth,
+                    _record_id, load_status FROM "d0b95d92-3345-4b40-9767-c28ddbbacfae"'),
           URLencode(paste0("WHERE siteid LIKE '", input$siteChoice, "'")),
           sep = "%20")
   })
@@ -114,9 +114,11 @@ shinyServer(function(input, output, session) {
   
   # Populate second drop-down with plot list from above
   output$plotChoices <- renderUI({
+    if(length(input$siteChoice)!=0){
     selectInput("plotSelect", "Select a plot to map:", c(Choose='', choices = thePlots()),
                 selectize = TRUE, multiple = FALSE)
- })
+    }
+  })
   
   
   
@@ -398,10 +400,10 @@ shinyServer(function(input, output, session) {
       td$fulcrum_id[td$load_status!="NONE"] <- paste0('<a href="',td$fulcrum_id[td$load_status!="NONE"],'"',' target="_blank" class="btn btn-info">View Loaded Record</a>')
       # Select fields and arrange rows
       td <- td %>%
-        select(fulcrum_id, bouttype, plotid, taxonid, nestedsubplotid, tagid, supportingstemtagid, subplotid, pointid,
+        select(fulcrum_id, recordtype, plotid, taxonid, nestedsubplotid, tagid, supportingstemtagid, subplotid, pointid,
                pointstatus, offseteasting, offsetnorthing) %>%
         arrange(nestedsubplotid, tagid)
-      td <- td[c("fulcrum_id", "bouttype", "plotid", "subplotid", "nestedsubplotid", "tagid", "supportingstemtagid", 
+      td <- td[c("fulcrum_id", "recordtype", "plotid", "subplotid", "nestedsubplotid", "tagid", "supportingstemtagid", 
                  "taxonid", "pointid", "pointstatus", "offseteasting", "offsetnorthing")]
     }
   })
