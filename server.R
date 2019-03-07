@@ -30,6 +30,11 @@ shinyServer(function(input, output, session) {
   ### Query data from Fulcrum based on site selected by user
   # Construct Fulcrum query
   dataQuery <- reactive({
+    # Account for the fact that input is null before user selects a site
+    shiny::validate(
+      need(input$siteChoice != "", "")
+    )
+    
     paste(URLencode('SELECT nestedshrubsapling, nestedliana, nestedother, recordtype, plotid, siteid, taxonid,
                     subplotid, nestedsubplotid, tagid, supportingstemtagid, pointid, stemdistance, stemazimuth,
                     _record_id, load_status FROM "d0b95d92-3345-4b40-9767-c28ddbbacfae"'),
@@ -39,6 +44,11 @@ shinyServer(function(input, output, session) {
   
   # Query Fulcrum to obtain site data
   fulcrumData <- reactive({
+    # Account for the fact that input is null before user selects a site
+    shiny::validate(
+      need(input$siteChoice != "", "")
+    )
+    
     temp <- if (input$siteChoice==''){
       return(NULL)
     } else {
@@ -49,6 +59,11 @@ shinyServer(function(input, output, session) {
   
   ### Filter and mutate `fulcrumData` to generate columns required for plot maps and data download
   siteData <- reactive({
+    # Account for the fact that input is null before user selects a site
+    shiny::validate(
+      need(input$siteChoice != "", "")
+    )
+    
     temp <- if (input$siteChoice==''){
       return(NULL)
     } else {
@@ -125,6 +140,11 @@ shinyServer(function(input, output, session) {
   ### Given user input, obtain plot data, then filter to get data for the map
   # Get data for the plot
   plotData <- reactive({
+    # Account for the fact that input is null before user selects a plot
+    shiny::validate(
+      need(input$plotSelect != "", "")
+    )
+    
     temp <- if (input$plotSelect==''){
       return(NULL)
     } else {
@@ -296,6 +316,11 @@ shinyServer(function(input, output, session) {
   
   # Render the ggplot to output, and include plot modifications from user input
   output$plotMap <- renderPlot({
+    # Account for the fact that input is null before user selects a plot to map
+    shiny::validate(
+      need(input$plotSelect != "", "")
+    )
+    
     p = ggMap()
     if (input$radio=="color") p = p + geom_point(data = mapData(), aes(x = stemeasting, y = stemnorthing, color = taxonid),
                                                  size = 2.75, shape = 21, stroke = 0.8, show.legend = TRUE)

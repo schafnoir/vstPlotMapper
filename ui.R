@@ -69,22 +69,29 @@ navbarPage("NEON VST Mapper",
                                     # Select siteID filtered by selected domainID
                                     uiOutput(outputId = "siteSelect"),
                                     
-                                    # Select plotIDs based on the 'siteChoice' above
-                                    uiOutput(outputId = "plotChoices"),
+                                    # After siteChoice selected, conditional panel for selecting plotIDs
+                                    conditionalPanel(
+                                      condition = "input.siteChoice !=''",
+                                      uiOutput(outputId = "plotChoices")
+                                    ),
                                     
-                                    # Radio buttons to determine whether taxonid is coded by color or shape
-                                    radioButtons("radio", label = "Code taxonID by:",
+                                    ##  After plotSelect, conditional panel for graphing options
+                                    conditionalPanel(
+                                      condition = "input.plotSelect !=''",
+                                      # Radio buttons to determine whether taxonid is coded by color or shape
+                                      radioButtons("radio", label = "Code taxonID by:",
                                                  choices = list("Color" = "color", "Shape" = "shape")),
-                                    
-                                    # helpText to explain limitations of coding by shape
-                                    helpText("A maximum of 6 species can be displayed when 'Shape' is selected."),
-                                    
-                                    # Checkboxes to select whether additional components are added to ggplot
-                                    checkboxGroupInput("checkGroup", label = "Add data layers:", 
+                                      
+                                      # helpText to explain limitations of coding by shape
+                                      helpText("A maximum of 6 species can be displayed when 'Shape' is selected."),
+                                      
+                                      # Checkboxes to select whether additional components are added to ggplot
+                                      checkboxGroupInput("checkGroup", label = "Add data layers:", 
                                                        choices = list("tagIDs" = "tags", "plotMarkers" = "markers")),
-                                    
-                                    # Download button for .pdf of Plot Map
-                                    downloadButton('downloadPlotMap', 'Download (.pdf)', class="btn btn-primary"),
+                                      
+                                      # Download button for .pdf of Plot Map
+                                      downloadButton('downloadPlotMap', 'Download (.pdf)', class="btn btn-primary")
+                                    ), #  End conditionalPanel
                                    
                                     # Set width of sidebarPanel
                                     width = 3
