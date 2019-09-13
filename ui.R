@@ -69,29 +69,35 @@ navbarPage("NEON VST Mapper",
                                     # Select siteID filtered by selected domainID
                                     uiOutput(outputId = "siteSelect"),
                                     
-                                    # After siteChoice selected, conditional panel for selecting plotIDs
+                                    # After siteChoice selected, conditional panel for selecting eventIDs
                                     conditionalPanel(
                                       condition = "input.siteChoice !=''",
-                                      uiOutput(outputId = "plotChoices")
+                                      uiOutput(outputId = "eventSelect")
                                     ),
                                     
+                                    # After siteChoice selected, conditional panel for selecting plotIDs
+                                    #conditionalPanel(
+                                    #  condition = "input.siteChoice !=''",
+                                    #  uiOutput(outputId = "plotChoices")
+                                    #),
+                                    
                                     ##  After plotSelect, conditional panel for graphing options
-                                    conditionalPanel(
-                                      condition = "input.plotSelect !=''",
+                                    #conditionalPanel(
+                                    #  condition = "input.plotSelect !=''",
                                       # Radio buttons to determine whether taxonid is coded by color or shape
-                                      radioButtons("radio", label = "Code taxonID by:",
-                                                 choices = list("Color" = "color", "Shape" = "shape")),
+                                    #  radioButtons("radio", label = "Code taxonID by:",
+                                    #             choices = list("Color" = "color", "Shape" = "shape")),
                                       
                                       # helpText to explain limitations of coding by shape
-                                      helpText("A maximum of 6 species can be displayed when 'Shape' is selected."),
+                                    #  helpText("A maximum of 6 species can be displayed when 'Shape' is selected."),
                                       
                                       # Checkboxes to select whether additional components are added to ggplot
-                                      checkboxGroupInput("checkGroup", label = "Add data layers:", 
-                                                       choices = list("tagIDs" = "tags", "plotMarkers" = "markers")),
+                                    #  checkboxGroupInput("checkGroup", label = "Add data layers:", 
+                                    #                   choices = list("tagIDs" = "tags", "plotMarkers" = "markers")),
                                       
                                       # Download button for .pdf of Plot Map
-                                      downloadButton('downloadPlotMap', 'Download (.pdf)', class="btn btn-primary")
-                                    ), #  End conditionalPanel
+                                    #  downloadButton('downloadPlotMap', 'Download (.pdf)', class="btn btn-primary")
+                                    #), #  End conditionalPanel
                                    
                                     # Set width of sidebarPanel
                                     width = 3
@@ -100,32 +106,38 @@ navbarPage("NEON VST Mapper",
                                   
                                   # Main panel of the page
                                   mainPanel(
+                                    # Temp string to display intermediate output
+                                    textOutput("tempText"),
+                                    
+                                    # Temp table to display intermediate output
+                                    tableOutput("tempTable")
+                                    
                                     # Display plot title
-                                    h4(textOutput("plotTitle")),
+                                    #h4(textOutput("plotTitle")),
                                     
                                     # Display ggplot
-                                    plotOutput("plotMap")
+                                    #plotOutput("plotMap")
                                     
                                   ) # End mainPanel
                     ) # End sidebarLayout
-            ), #  End Plot Map tabPanel
+            )#, #  End Plot Map tabPanel
            
            
            
-           tabPanel("Plot Data",
-                    fluidRow(
-                      column(width = 12, 
-                             wellPanel(helpText("Retrieve data from tagged individuals in the plot"), 
-                                       downloadButton('downloadData', 'Download (.csv)', class="btn btn-primary")
-                             ) # End wellPanel
-                      ) # End column
-                    ), # End first fluidRow
+           #tabPanel("Plot Data",
+            #        fluidRow(
+            #          column(width = 12, 
+            #                 wellPanel(helpText("Retrieve data from tagged individuals in the plot"), 
+            #                           downloadButton('downloadData', 'Download (.csv)', class="btn btn-primary")
+            #                 ) # End wellPanel
+            #          ) # End column
+            #        ), # End first fluidRow
                     
-                    fluidRow(
-                      column(width=12, DT::dataTableOutput("table"))
-                    ) # End second fluidRow
+            #        fluidRow(
+            #          column(width=12, DT::dataTableOutput("table"))
+            #        ) # End second fluidRow
                     
-            ) # End Plot Data tabPanel
+            #) # End Plot Data tabPanel
            
            
 ,
