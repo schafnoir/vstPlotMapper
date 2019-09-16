@@ -47,3 +47,19 @@ SELECT * FROM "VST: Apparent Individuals [PROD]" AS parent JOIN "VST: Apparent I
 
 SELECT parent._record_id, parent.load_status, parent.domainid, parent.siteid, parent.plotid, parent.eventid, child._child_record_id, child.tagid, child.individualid, child.subplotid, child.nestedsubplotid, child.tagstatus, child.taxonid, child.plantstatus, child.growthform, child.shape, child.stemdiameter, child.measurementheight, child.basalstemdiameter, child.basalstemdiametermeasurementheight, child.vdapexheight, child.vdbaseheight, child.maxcrowndiameter, child.ninetycrowndiameter, child.canopyposition FROM "VST: Apparent Individuals [PROD]" AS parent JOIN "VST: Apparent Individuals [PROD]/vst_woody_stems" AS child ON (parent._record_id = child._parent_id) WHERE siteid LIKE 'ABBY' AND eventid LIKE 'vst_ABBY_2018'; #  This works
 
+#   Example of Shiny query using two input variables
+##  Construct Fulcrum query for plotIDs
+aiPlotQuery <- reactive({
+  # Account for null input before user selects a site
+  shiny::validate(
+    need(input$eventChoice != "", "")
+  )
+  # Join is needed to get only plotIDs from woody stem measurement events
+  paste(URLencode('SELECT DISTINCT plotid FROM "VST: Apparent Individuals [PROD]" AS parent 
+                    JOIN "VST: Apparent Individuals [PROD]/vst_woody_stems" AS child'), URLencode(paste0("ON (parent._record_id = child._parent_id) WHERE siteid LIKE '", input$siteChoice, "'", "AND eventid LIKE '", input$eventChoice, "'")),
+        sep = "%20")
+})
+
+
+### Method for aligning multiple ggplot2 objects on the page
+http://www.sthda.com/english/articles/24-ggpubr-publication-ready-plots/81-ggplot2-easy-way-to-mix-multiple-graphs-on-the-same-page/
