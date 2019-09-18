@@ -222,7 +222,7 @@ shinyServer(function(input, output, session) {
     )
     
     # Create drop-down
-    selectInput("plotChoice", "Select a plot to map:", c(Choose='', choices = thePlots()),
+    selectInput("plotChoice", "Select a plot:", c(Choose='', choices = thePlots()),
                   selectize = TRUE, multiple = FALSE)
   })
   
@@ -341,7 +341,7 @@ shinyServer(function(input, output, session) {
   })
   
   
-  ##  Retrieve easting and northing data for points defining the selected plot
+  ###  Retrieve easting and northing data for points defining the selected plot
   mapPoints <- reactive({
     # Account for null input before user selects a plotid or when user changes events, sites, or domains
     shiny::validate(
@@ -358,7 +358,7 @@ shinyServer(function(input, output, session) {
   })
   
   
-  ##  Isolate easting and northing coordinates required for making geom_segments that draw plot perimeter
+  ###  Isolate easting and northing coordinates required for making geom_segments that draw plot perimeter
   E1 <- reactive({ifelse(input$plotChoice=='', return(NULL), mapPoints()$pointeasting[mapPoints()$pointid==cornerPoints()[1]])})
   N1 <- reactive({ifelse(input$plotChoice=='', return(NULL), mapPoints()$pointnorthing[mapPoints()$pointid==cornerPoints()[1]])})
   E2 <- reactive({ifelse(input$plotChoice=='', return(NULL), mapPoints()$pointeasting[mapPoints()$pointid==cornerPoints()[2]])})
@@ -369,9 +369,33 @@ shinyServer(function(input, output, session) {
   N4 <- reactive({ifelse(input$plotChoice=='', return(NULL), mapPoints()$pointnorthing[mapPoints()$pointid==cornerPoints()[4]])})
   
   
-  ##  Retrieve Plot Meta-Data nestedSubplot sizes for display below plot map
-  # Obtain `nestedshrubsapling` size for selected plotsubplotid, omitting "NA" and "" values
+  
+  ### Build plot title and ggplot object for display
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  ### Retrieve Plot Meta-Data nestedSubplot sizes for display below plot map
+  ##  Obtain `nestedshrubsapling` size for selected plotsubplotid, omitting "NA" and "" values
   nestedShrubSapling <- reactive({
+    # Account for null input before user selects a plotid or when user changes events, sites, or domains
+    shiny::validate(
+      need(input$siteChoice != "", ""),
+      need(input$eventChoice != "", ""),
+      need(input$plotChoice != "", "")
+    )
+    # Retrieve nestedshrubsapling value for selected plot
     temp <- if (input$plotChoice==''){
       return(NULL)
     } else {
@@ -382,8 +406,73 @@ shinyServer(function(input, output, session) {
     }
   })
   
-  ##  Continue with retrieving additional Plot Meta-Data for nested other, etc. then build table for display
   
+  ##  Obtain `nestedliana` size for selected plotsubplotid, omitting "NA" and "" values
+  nestedLiana <- reactive({
+    # Account for null input before user selects a plotid or when user changes events, sites, or domains
+    shiny::validate(
+      need(input$siteChoice != "", ""),
+      need(input$eventChoice != "", ""),
+      need(input$plotChoice != "", "")
+    )
+    # Retrieve nestedliana value for selected plot
+    temp <- if (input$plotChoice==''){
+      return(NULL)
+    } else {
+      nl <- joinData() %>%
+        filter(plotsubplotid==input$plotChoice, nestedliana != "NA", nestedliana != "") %>%
+        distinct(nestedliana)
+      nl <- nl[1,1]
+    }
+  })
+  
+  
+  ##  Obtain `nestedother` size for selected plotsubplotid, omitting "NA" and "" values
+  nestedOther <- reactive({
+    # Account for null input before user selects a plotid or when user changes events, sites, or domains
+    shiny::validate(
+      need(input$siteChoice != "", ""),
+      need(input$eventChoice != "", ""),
+      need(input$plotChoice != "", "")
+    )
+    # Retrieve nestedliana value for selected plot
+    temp <- if (input$plotChoice==''){
+      return(NULL)
+    } else {
+      no <- joinData() %>%
+        filter(plotsubplotid==input$plotChoice, nestedother != "NA", nestedother != "") %>%
+        distinct(nestedother)
+      no <- no[1,1]
+    }
+  })
+  
+  
+  ### Construct nestedSubplotSize table for display beneath plot map
+  ##  Create table
+  nestedDF <- reactive({
+    # Account for null input before user selects a plotid or when user changes events, sites, or domains
+    shiny::validate(
+      need(input$siteChoice != "", ""),
+      need(input$eventChoice != "", ""),
+      need(input$plotChoice != "", "")
+    )
+    # Create nested subplot data frame for table rendering
+    temp <- data.frame(cbind(nestedShrubSapling(), nestedLiana(), nestedOther()))
+    colnames(temp) <- nestedNames
+    temp
+  })
+  
+  
+  ##  Create table output for display
+  output$nestedTable <- renderTable(
+    nestedDF(),
+    align = 'c'
+  )
+  
+  
+  ##  Build plot map such that `plantStatus` = 8,16 are identified by shape, and remove option to plot taxonID by shape
+  ##  Build Plot Data table such that it is possible to filter data by plantStatus to remove 'no longer measured' and 'downed'
+  ##  Duplicate data controls from Plot Map in Plot Data tab
   
   
   ###################################################################################################

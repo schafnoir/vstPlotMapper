@@ -118,7 +118,16 @@ navbarPage("NEON VST QC",
                                     textOutput("tempText"),
                                     
                                     # Temp table to display intermediate output
-                                    tableOutput("tempTable")
+                                    tableOutput("tempTable"),
+                                    
+                                    # Table to display nested subplot sizes
+                                    conditionalPanel(
+                                      condition = "input.siteChoice !='' && input.eventChoice !='' && input.plotChoice != ''",
+                                      wellPanel(
+                                        h5("Nested Subplot Sizes for Selected Plot:"),
+                                        tableOutput("nestedTable")
+                                      )
+                                    )
                                     
                                     # Display plot title
                                     #h4(textOutput("plotTitle")),
