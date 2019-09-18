@@ -39,15 +39,29 @@ aiQuery <- paste(URLencode('SELECT parent._record_id, parent.load_status, parent
   
  aiData <- get_Fulcrum_data(api_token = api_token, sql = aiQuery)   # This works
   
-##  Queries that work using Fulcrum Query Utility
-#   Query to get distinct eventids present in the woody child table to pass to drop-down
+
+
+### SQL Query development
+##  Different queries to get distinct eventids present in the woody child table to pass to drop-down
+#   Query obtains eventids after joining parent AI data with Woody child data to only find those eventids associated with woody sampling
 SELECT DISTINCT eventid FROM "VST: Apparent Individuals [PROD]" AS parent JOIN "VST: Apparent Individuals [PROD]/vst_woody_stems" AS child ON (parent._record_id = child._parent_id) WHERE siteid LIKE 'ABBY';
 
-SELECT * FROM "VST: Apparent Individuals [PROD]" AS parent JOIN "VST: Apparent Individuals [PROD]/vst_woody_stems" AS child ON (parent._record_id = child._parent_id) WHERE siteid LIKE 'ABBY' AND eventid LIKE 'vst_ABBY_2018'; #  This works
+#   Query obtains distinct eventids from parent records associated with woody child records, no need to join
+SELECT DISTINCT eventid FROM "VST: Apparent Individuals [PROD]" WHERE siteid LIKE 'ABBY' AND total_woody_stems IS NOT NULL;
 
+###   Queries to obtain Apparent Individual data given user-selected siteid and eventid
+# Retrieves all columns from joined parent/child records
+SELECT * FROM "VST: Apparent Individuals [PROD]" AS parent JOIN "VST: Apparent Individuals [PROD]/vst_woody_stems" AS child ON (parent._record_id = child._parent_id) WHERE siteid LIKE 'ABBY' AND eventid LIKE 'vst_ABBY_2018';
+
+# Retrieves specified columns from joined parent/child records
 SELECT parent._record_id, parent.load_status, parent.domainid, parent.siteid, parent.plotid, parent.eventid, child._child_record_id, child.tagid, child.individualid, child.subplotid, child.nestedsubplotid, child.tagstatus, child.taxonid, child.plantstatus, child.growthform, child.shape, child.stemdiameter, child.measurementheight, child.basalstemdiameter, child.basalstemdiametermeasurementheight, child.vdapexheight, child.vdbaseheight, child.maxcrowndiameter, child.ninetycrowndiameter, child.canopyposition FROM "VST: Apparent Individuals [PROD]" AS parent JOIN "VST: Apparent Individuals [PROD]/vst_woody_stems" AS child ON (parent._record_id = child._parent_id) WHERE siteid LIKE 'ABBY' AND eventid LIKE 'vst_ABBY_2018'; #  This works
 
-#   Example of Shiny query using two input variables
+
+
+
+
+
+####   Example of Shiny query using two input variables
 ##  Construct Fulcrum query for plotIDs
 aiPlotQuery <- reactive({
   # Account for null input before user selects a site

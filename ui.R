@@ -1,5 +1,5 @@
 ### Define UI for Veg Structure Plot Mapper application
-navbarPage("NEON VST Mapper", 
+navbarPage("NEON VST QC", 
            tabPanel("About",
                     fluidRow(
                       column(width=2),
@@ -69,17 +69,17 @@ navbarPage("NEON VST Mapper",
                                     # Select siteID filtered by selected domainID
                                     uiOutput(outputId = "siteSelect"),
                                     
-                                    # After siteChoice selected, conditional panel for selecting eventIDs
+                                    # After user selects site, conditional panel for selecting eventID
                                     conditionalPanel(
                                       condition = "input.siteChoice !=''",
                                       uiOutput(outputId = "eventSelect")
                                     ),
                                     
-                                    # After siteChoice selected, conditional panel for selecting plotIDs
-                                    #conditionalPanel(
-                                    #  condition = "input.siteChoice !=''",
-                                    #  uiOutput(outputId = "plotChoices")
-                                    #),
+                                    # After user selects eventID, conditional panel for selecting plotID
+                                    conditionalPanel(
+                                      condition = "input.siteChoice !='' && input.eventChoice !=''",
+                                      uiOutput(outputId = "plotSelect")
+                                    ),
                                     
                                     ##  After plotSelect, conditional panel for graphing options
                                     #conditionalPanel(
@@ -106,6 +106,14 @@ navbarPage("NEON VST Mapper",
                                   
                                   # Main panel of the page
                                   mainPanel(
+                                    wellPanel(
+                                      h4("Plot Title Placeholder"),
+                                      textOutput("mapPointWarning"),
+                                      textOutput("mapDataWarning"),
+                                      tags$head(tags$style("#mapPointWarning{color:#C40000}",
+                                                           "#mapDataWarning{color:#C40000}"))
+                                    ),
+                                    
                                     # Temp string to display intermediate output
                                     textOutput("tempText"),
                                     

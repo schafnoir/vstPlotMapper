@@ -91,11 +91,13 @@ shinyServer(function(input, output, session) {
       mutate(plotsubplotid = ifelse(plottype=="distributed", paste0("(D) ", plotid),
                                     ifelse(plottype=="smTower", paste0("(T) ", plotid),
                                            paste0("(T) ", plotid, ": ", subplotid)))) %>%
+      
       # Create `pointstatus` variable to detect invalid pointid values based on plottype
       mutate(pointstatus = ifelse(is.na(pointid), "notMapped",
                                   ifelse(plottype=="lgTower" & pointid %in% expLarge, "validPointID",
                                          ifelse(pointid %in% expSmall, "validPointID",
                                                 "errorPointID")))) %>%
+      
       # Create 'plotpointid' variable for valid pointids only, to enable join with 'pointSpatial' data table
       mutate(plotpointid = ifelse(is.na(pointid), "NA", 
                                   ifelse(pointstatus=="validPointID", paste(plotid, pointid, sep="_"),
