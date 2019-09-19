@@ -1,5 +1,5 @@
 ### Define UI for Veg Structure Plot Mapper application
-navbarPage("NEON VST QC", 
+navbarPage("NEON VST QC v2.0", 
            tabPanel("About",
                     fluidRow(
                       column(width=2),
@@ -82,22 +82,24 @@ navbarPage("NEON VST QC",
                                     ),
                                     
                                     ##  After plotSelect, conditional panel for graphing options
-                                    #conditionalPanel(
-                                    #  condition = "input.plotSelect !=''",
+                                    conditionalPanel(
+                                      condition = "(typeof input.siteChoice !== 'undefined' && input.siteChoice !== '' &&
+                                      input.eventChoice !== 'undefined' && input.eventChoice !== '' &&
+                                      input.plotChoice !== 'undefined' && input.plotChoice !== '')",
                                       # Radio buttons to determine whether taxonid is coded by color or shape
-                                    #  radioButtons("radio", label = "Code taxonID by:",
-                                    #             choices = list("Color" = "color", "Shape" = "shape")),
+                                      radioButtons("taxonRadio", label = "Code taxonID by:",
+                                                 choices = list("Color" = "color", "Shape" = "shape")),
                                       
                                       # helpText to explain limitations of coding by shape
-                                    #  helpText("A maximum of 6 species can be displayed when 'Shape' is selected."),
+                                      helpText("A maximum of 6 species can be displayed when 'Shape' is selected."),
                                       
                                       # Checkboxes to select whether additional components are added to ggplot
-                                    #  checkboxGroupInput("checkGroup", label = "Add data layers:", 
-                                    #                   choices = list("tagIDs" = "tags", "plotMarkers" = "markers")),
+                                      checkboxGroupInput("labelChecks", label = "Add data layers:", 
+                                                       choices = list("tagIDs" = "tags", "plotMarkers" = "markers")),
                                       
                                       # Download button for .pdf of Plot Map
-                                    #  downloadButton('downloadPlotMap', 'Download (.pdf)', class="btn btn-primary")
-                                    #), #  End conditionalPanel
+                                      downloadButton('downloadPlotMap', 'Download (.pdf)', class="btn btn-primary")
+                                    ), #  End conditionalPanel
                                    
                                     # Set width of sidebarPanel
                                     width = 3
@@ -106,34 +108,40 @@ navbarPage("NEON VST QC",
                                   
                                   # Main panel of the page
                                   mainPanel(
-                                    wellPanel(
-                                      h4("Plot Title Placeholder"),
-                                      textOutput("mapPointWarning"),
-                                      textOutput("mapDataWarning"),
-                                      tags$head(tags$style("#mapPointWarning{color:#C40000}",
-                                                           "#mapDataWarning{color:#C40000}"))
-                                    ),
-                                    
+                                    # First fluidRow for Plot Title and Warnings
+                                    fluidRow(
                                     # Temp string to display intermediate output
-                                    textOutput("tempText"),
+                                    #textOutput("tempText"),
                                     
                                     # Temp table to display intermediate output
-                                    tableOutput("tempTable"),
+                                    #tableOutput("tempTable"),
                                     
-                                    # Table to display nested subplot sizes
+                                    wellPanel(
+                                      h4(textOutput("plotTitle")),
+                                      textOutput("mapPointError"),
+                                      textOutput("mapDataWarning"),
+                                      tags$head(tags$style("#mapPointError{color:#C40000}",
+                                                           "#mapDataWarning{color:#C40000}"))
+                                    )
+                                    ), #  End fluidRow
+                                    
+                                    # Second fluidRow for plotMap content
+                                    fluidRow(style = "height:900px;",
+                                      plotOutput("mapPlot")
+                                    ), #  End fluidRow
+                                    
+                                    # Third fluidRow for table to display nested subplot sizes
+                                    fluidRow(style = "padding-top:10px;",
                                     conditionalPanel(
-                                      condition = "input.siteChoice !='' && input.eventChoice !='' && input.plotChoice != ''",
+                                      condition = "(typeof input.siteChoice !== 'undefined' && input.siteChoice !== '' &&
+                                      input.eventChoice !== 'undefined' && input.eventChoice !== '' &&
+                                      input.plotChoice !== 'undefined' && input.plotChoice !== '')",
                                       wellPanel(
                                         h5("Nested Subplot Sizes for Selected Plot:"),
                                         tableOutput("nestedTable")
                                       )
                                     )
-                                    
-                                    # Display plot title
-                                    #h4(textOutput("plotTitle")),
-                                    
-                                    # Display ggplot
-                                    #plotOutput("plotMap")
+                                    ) # End fluidRow
                                     
                                   ) # End mainPanel
                     ) # End sidebarLayout

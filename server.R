@@ -251,7 +251,7 @@ shinyServer(function(input, output, session) {
   ### Generate warnings if there are problems with the input dataset
   
   ##  Map Point Warning: Identify presence of individuals with `pointstatus` = errorPointID
-  output$mapPointWarning <- renderText({
+  output$mapPointError <- renderText({
     # Account for null input before user selects a plotid or when user changes events, sites, or domains
     shiny::validate(
       need(input$siteChoice != "", ""),
@@ -261,7 +261,7 @@ shinyServer(function(input, output, session) {
     # Check for presence of `pointstatus` = errorPointID
     temp <- joinData() %>% filter(plotsubplotid==input$plotChoice)
     if("errorPointID" %in% temp$pointstatus){
-      warning <- "Mapping Error: Bother, an invalid pointID was used in the field to map at least one woody individual."
+      warning <- "Mapping Error: An invalid pointID was used in the field to map at least one woody individual. To find errors, go to the Plot Data tab and search by 'pointstatus'."
       return(warning)
     }
     
@@ -371,13 +371,72 @@ shinyServer(function(input, output, session) {
   
   
   ### Build plot title and ggplot object for display
+  ##  Build plot title
+  output$plotTitle <- renderText({
+    shiny::validate(
+      #need(input$siteChoice != "", ""),
+      need(input$siteChoice != "" && input$eventChoice != "" && input$plotChoice != "", "Please select a plot to map")
+    )
+    paste0("Plot Map: ", input$plotChoice)
+  })
   
   
+  ##  Build ggplot object
+  ggMap <- reactive({
+    # Account for null input before user selects a plotid or when user changes events, sites, or domains
+    shiny::validate(
+      need(input$siteChoice != "" && input$eventChoice != "" && input$plotChoice != "", "")
+    )
+    # Create the basic ggplot from the mapPoints data
+    ggplot(mapPoints(), aes(pointeasting, pointnorthing)) +
+      
+      # Set the aspect ratio using the mapPoint data
+      coord_fixed() +
+      
+      # Add axis labels
+      labs(x = "Easting (meters)",
+           y = "Northing (meters)") +
+      
+      # Remove axis and grid lines from panel
+      theme(panel.grid = element_blank()) +
+      theme(axis.text = element_text(size = 12)) +
+      theme(axis.title = element_text(size = 14, face = "bold")) +
+      theme(legend.text = element_text(size=12)) +
+      theme(title = element_text(size=14)) +
+      
+      # Set axis ticks to begin at minimum easting and northing values in mapPoints, and space every 5 meters
+      scale_x_continuous(breaks=seq(round(min(mapPoints()$pointeasting)), max(mapPoints()$pointeasting),5)) +
+      scale_y_continuous(breaks=seq(round(min(mapPoints()$pointnorthing)), max(mapPoints()$pointnorthing),5)) +
+      
+      # Draw perimeter of plot/subplot
+      geom_segment(x = E1(), y = N1(), xend = E2(), yend = N2(), color = "grey30") +
+      geom_segment(x = E2(), y = N2(), xend = E4(), yend = N4(), color = "grey30") +
+      geom_segment(x = E1(), y = N1(), xend = E3(), yend = N3(), color = "grey30") +
+      geom_segment(x = E3(), y = N3(), xend = E4(), yend = N4(), color = "grey30") +
+      
+      # Add corner points (and centroid if present) using high-res GPS data
+      geom_point(size=3, shape=21, colour="black", fill="red", stroke=1, show.legend = FALSE)
+  })
   
   
-  
-  
-  
+  ##  Render the ggplot to output, and include plot modifications from user input
+  output$mapPlot <- renderPlot({
+    # Account for null input before user selects a plotid or when user changes events, sites, or domains
+    shiny::validate(
+      need(input$siteChoice != "" && input$eventChoice != "" && input$plotChoice != "", "")
+    )
+    # Add layers to base map of plot
+    p = ggMap()
+    if (input$taxonRadio=="color") p = p + geom_point(data = mapData(), aes(x = stemeasting, y = stemnorthing, color = taxonid, size = stemdiameter),
+                                                 shape = 21, stroke = 0.8, show.legend = TRUE)
+    if (input$taxonRadio=="shape") p = p + geom_point(data = mapData(), aes(x = stemeasting, y = stemnorthing, shape = taxonid),
+                                                 size = 2.75, stroke = 0.8, show.legend = TRUE) +
+      scale_shape_discrete(solid = FALSE)
+    if ("tags" %in% input$labelChecks) p = p + geom_text_repel(data=mapData(), aes(x=stemeasting, y=stemnorthing, label=tagid), size=4, 
+                                                              nudge_x = 0.3, nudge_y = 0.3)
+    if ("markers" %in% input$labelChecks) p = p + geom_label(aes(label = pointid), fill = "#FF6C5E", show.legend = FALSE)
+    p
+  }, height = 900)
   
   
   
@@ -470,7 +529,77 @@ shinyServer(function(input, output, session) {
   )
   
   
-  ##  Build plot map such that `plantStatus` = 8,16 are identified by shape, and remove option to plot taxonID by shape
+  
+  ###  Create .pdf download output from ggplot <-- Need to create caption and add it back here so that nested subplot info gets into pdf
+  ##  Build the ggplot object for download and printing
+  ggDownload <- reactive({
+    ggplot(mapPoints(), aes(pointeasting, pointnorthing)) +
+      # Set the aspect ratio using the mapPoint data
+      coord_fixed() +
+      
+      # Add title and axis labels
+      labs(title = paste0("Plot Map: ", input$plotChoice),
+           x = "Easting (meters)",
+           y = "Northing (meters)") +
+      
+      # Remove axis and grid lines from panel, place legend at bottom, and size text output for printing/download
+      theme(panel.grid = element_blank()) +
+      theme(plot.title = element_text(size=11, face = "bold")) +
+      theme(axis.text = element_text(size = 8)) +
+      theme(axis.title = element_text(size = 9, face = "bold")) +
+      theme(legend.text = element_text(size=7)) +
+      
+      # Set axis ticks to begin at minimum easting and northing values in mapPoints, and space every 5 meters
+      scale_x_continuous(breaks=seq(round(min(mapPoints()$pointeasting)), max(mapPoints()$pointeasting),5)) +
+      scale_y_continuous(breaks=seq(round(min(mapPoints()$pointnorthing)), max(mapPoints()$pointnorthing),5)) +
+      
+      # Rotate y-axis labels 90-degrees
+      theme(axis.text.y  = element_text(angle=90, hjust=0.5)) +
+      
+      # Draw perimeter of plot/subplot
+      geom_segment(x = E1(), y = N1(), xend = E2(), yend = N2(), color = "grey30") +
+      geom_segment(x = E2(), y = N2(), xend = E4(), yend = N4(), color = "grey30") +
+      geom_segment(x = E1(), y = N1(), xend = E3(), yend = N3(), color = "grey30") +
+      geom_segment(x = E3(), y = N3(), xend = E4(), yend = N4(), color = "grey30") +
+      
+      # Add corner points (and centroid if present) using high-res GPS data
+      geom_point(size=2, shape=21, colour="black", fill="red", stroke=1, show.legend = FALSE)
+    
+  })
+  
+  
+  ##  Add layers to download plot based on user input
+  ggFinalDownload <- reactive({
+    p = ggDownload()
+    if (input$taxonRadio=="color") p = p + 
+        geom_point(data = mapData(), aes(x = stemeasting, y = stemnorthing, color = taxonid, size = stemdiameter),
+                   shape = 21, stroke = 0.5, show.legend = TRUE)
+    
+    if (input$taxonRadio=="shape") p = p +
+        geom_point(data = mapData(), aes(x = stemeasting, y = stemnorthing, shape = taxonid), size = 2, stroke = 0.5, show.legend = TRUE) +
+        scale_shape_discrete(solid = FALSE)
+    
+    if ("tags" %in% input$labelChecks) p = p + 
+        geom_text_repel(data=mapData(), aes(x=stemeasting, y=stemnorthing, label=tagid), size=2, nudge_x = 0.3, nudge_y = 0.3)
+    
+    if ("markers" %in% input$labelChecks) p = p + geom_label(aes(label = pointid), fill = "#FF6C5E", colour="white", size=2, show.legend = FALSE)
+    p
+  })
+  
+  
+  ##  Pipe ggDownload output to .pdf file for local saving
+  output$downloadPlotMap <- downloadHandler(
+    filename = function(){
+      paste0(paste(unique(mapData()$plotid), unique(mapData()$subplotid), sep = "_"), '.pdf')
+    },
+    content = function(file) {
+      ggsave(file, plot = ggFinalDownload(), width = 6.5, units = "in", device = "pdf")
+    }
+  )
+  
+  
+  
+  
   ##  Build Plot Data table such that it is possible to filter data by plantStatus to remove 'no longer measured' and 'downed'
   ##  Duplicate data controls from Plot Map in Plot Data tab
   
@@ -479,7 +608,7 @@ shinyServer(function(input, output, session) {
   ### Temporary output to see intermediate data and text
   # Temp text
   output$tempText <- renderText(
-   nestedShrubSapling()
+   names(mapData())
   )
   
   # Temp table
