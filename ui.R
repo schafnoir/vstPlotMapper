@@ -165,13 +165,31 @@ navbarPage("NEON VST QC v2.0",
                       
                       ############################  Next step is to create tabs and then put mainPanel within Data Table tab
                       mainPanel(
-                        h4("Main Panel test"),
+                        tabsetPanel(
+                          ### Data Table tab pane
+                          tabPanel("Data Table",
+                                   h4("Data Table test"),
+                                   
+                                   # Temp text output
+                                   verbatimTextOutput("tempText"),
+                                   
+                                   # Temp table output
+                                   DT::dataTableOutput("tempTable")
+                                   ),
+                          
+                          ### QC Tables tab pane
+                          tabPanel("QC Tables",
+                                   h4("QC Tables test")
+                                   ),
+                          
+                          ### QC Plots tab pane
+                          tabPanel("QC Plots",
+                                   h4("QC Plots test")
+                                   )
+                        )
                         
-                        # Temp text output
-                        verbatimTextOutput("tempText"),
                         
-                        # Temp table output
-                        DT::dataTableOutput("tempTable"),
+                        ,
                         
                       width = 9) # End mainPanel
                     ) # End sidebarLayout

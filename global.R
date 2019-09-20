@@ -131,11 +131,6 @@ theDomains <- unique(domain_site$domainid)
 # Define nested subplot names for Plot Map nestedsubplotsize table
 nestedNames <- c("smt+sap+sis+sms", "lia", "other")
 
-# Define `plantStatus` elements for filtering input data for Plot Data tab
-filterDataTable <- c("All Individuals", "Live", "Standing Dead", "No Longer Measured", "Downed, Lost, Removed", "Mapping Error")
-
-
-
 
 
 
