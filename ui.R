@@ -59,7 +59,7 @@ navbarPage("NEON VST QC v2.0",
                                   sidebarPanel(
                                     # Select domainID from list of domains with VST data
                                     selectInput(
-                                      inputId = "domainSelect",
+                                      inputId = "mapDomainChoice",
                                       label = "Select a NEON domain:",
                                       c(Choose = '', theDomains),
                                       selectize = TRUE,
@@ -86,6 +86,7 @@ navbarPage("NEON VST QC v2.0",
                                       condition = "(typeof input.siteChoice !== 'undefined' && input.siteChoice !== '' &&
                                       input.eventChoice !== 'undefined' && input.eventChoice !== '' &&
                                       input.plotChoice !== 'undefined' && input.plotChoice !== '')",
+                                      
                                       # Radio buttons to determine whether taxonid is coded by color or shape
                                       radioButtons("taxonRadio", label = "Code taxonID by:",
                                                  choices = list("Color" = "color", "Shape" = "shape")),
@@ -110,19 +111,13 @@ navbarPage("NEON VST QC v2.0",
                                   mainPanel(
                                     # First fluidRow for Plot Title and Warnings
                                     fluidRow(
-                                    # Temp string to display intermediate output
-                                    #textOutput("tempText"),
-                                    
-                                    # Temp table to display intermediate output
-                                    #tableOutput("tempTable"),
-                                    
-                                    wellPanel(
-                                      h4(textOutput("plotTitle")),
-                                      textOutput("mapPointError"),
-                                      textOutput("mapDataWarning"),
-                                      tags$head(tags$style("#mapPointError{color:#C40000}",
+                                      wellPanel(
+                                        h4(textOutput("plotTitle")),
+                                        textOutput("mapPointError"),
+                                        textOutput("mapDataWarning"),
+                                        tags$head(tags$style("#mapPointError{color:#C40000}",
                                                            "#mapDataWarning{color:#C40000}"))
-                                    )
+                                        ) # End wellPanel
                                     ), #  End fluidRow
                                     
                                     # Second fluidRow for plotMap content
@@ -141,28 +136,46 @@ navbarPage("NEON VST QC v2.0",
                                         tableOutput("nestedTable")
                                       )
                                     )
-                                    ) # End fluidRow
-                                    
-                                  ) # End mainPanel
+                                    ), # End fluidRow
+                                  width = 8) # End mainPanel
                     ) # End sidebarLayout
-            )#, #  End Plot Map tabPanel
+            ), #  End Plot Map tabPanel
            
            
            
-           #tabPanel("Plot Data",
-            #        fluidRow(
-            #          column(width = 12, 
-            #                 wellPanel(helpText("Retrieve data from tagged individuals in the plot"), 
-            #                           downloadButton('downloadData', 'Download (.csv)', class="btn btn-primary")
-            #                 ) # End wellPanel
-            #          ) # End column
-            #        ), # End first fluidRow
-                    
-            #        fluidRow(
-            #          column(width=12, DT::dataTableOutput("table"))
-            #        ) # End second fluidRow
-                    
-            #) # End Plot Data tabPanel
+           tabPanel("Plot Data",
+                    sidebarLayout(
+                      # sidebarPanel to contain user controls
+                      sidebarPanel(
+                        # Display user domain, site, and event selections from Plot Map tab. 
+                        helpText("Selected NEON domain:"),
+                        verbatimTextOutput("dataDomainSelect"),
+                        helpText("Selected NEON site:"),
+                        verbatimTextOutput("dataSiteSelect"),
+                        helpText("Selected VST event:"),
+                        verbatimTextOutput("dataEventSelect"),
+                        uiOutput("dataPlotSelect"),
+                        
+                        
+                        
+                        width = 2
+                      ), #  End sidebarPanel
+                      
+                      # mainPanel to contain tabPanel 'tabs' content
+                      
+                      ############################  Next step is to create tabs and then put mainPanel within Data Table tab
+                      mainPanel(
+                        h4("Main Panel test"),
+                        
+                        # Temp text output
+                        verbatimTextOutput("tempText"),
+                        
+                        # Temp table output
+                        DT::dataTableOutput("tempTable"),
+                        
+                      width = 9) # End mainPanel
+                    ) # End sidebarLayout
+            ) # End Plot Data tabPanel
            
            
 ,

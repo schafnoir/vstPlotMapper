@@ -125,8 +125,14 @@ domain_site %>%
 # Create domain list for drop-down for domains with data
 theDomains <- unique(domain_site$domainid)
 
+
+
+##  Other required app data
 # Define nested subplot names for Plot Map nestedsubplotsize table
 nestedNames <- c("smt+sap+sis+sms", "lia", "other")
+
+# Define `plantStatus` elements for filtering input data for Plot Data tab
+filterDataTable <- c("All Individuals", "Live", "Standing Dead", "No Longer Measured", "Downed, Lost, Removed", "Mapping Error")
 
 
 

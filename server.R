@@ -14,17 +14,17 @@ shinyServer(function(input, output, session) {
   ##  Create filtered siteSelect dropdown from selected domainID
   theSites <- reactive({
     # Provide full list of sites if no domain is selected
-    temp <- if (input$domainSelect==''){
+    temp <- if (input$mapDomainChoice==''){
       domain_site %>% select(siteid)
     } else {
       # reduce siteIDs to the domainID chosen
-      domain_site %>% filter(domainid==input$domainSelect) %>% select(siteid)
+      domain_site %>% filter(domainid==input$mapDomainChoice) %>% select(siteid)
     }
   })
   
   ##  Render output to siteID dropdown
   output$siteSelect <- renderUI({
-    if(input$domainSelect==''){
+    if(input$mapDomainChoice==''){
       selectInput("siteChoice", "Select a NEON site:", c(Choose = '', choices = theSites()))
     } else if (nrow(theSites())==1) {
       textInput("siteChoice", "Select a NEON site:", value = theSites())
@@ -506,6 +506,20 @@ shinyServer(function(input, output, session) {
   })
   
   
+  ##  Construct caption for use in downloaded .pdf version of Plot Map
+  captionInput <- reactive({
+    temp <- if (input$plotChoice==''){
+      return(NULL)
+    } else {
+      paste("", "Nested Subplot Sizes:",
+            paste0("nestedSubplotSize (smt + sap + sis + sms) = ", nestedShrubSapling()),
+            paste0("nestedSubplotSize (lia) = ", nestedLiana()),
+            paste0("nestedSubplotSize (other) = ", nestedOther()),
+            sep = "\n")
+    }
+  })
+  
+  
   ### Construct nestedSubplotSize table for display beneath plot map
   ##  Create table
   nestedDF <- reactive({
@@ -537,10 +551,11 @@ shinyServer(function(input, output, session) {
       # Set the aspect ratio using the mapPoint data
       coord_fixed() +
       
-      # Add title and axis labels
+      # Add title, axis labels, and caption
       labs(title = paste0("Plot Map: ", input$plotChoice),
            x = "Easting (meters)",
-           y = "Northing (meters)") +
+           y = "Northing (meters)",
+           caption = captionInput()) +
       
       # Remove axis and grid lines from panel, place legend at bottom, and size text output for printing/download
       theme(panel.grid = element_blank()) +
@@ -600,20 +615,85 @@ shinyServer(function(input, output, session) {
   
   
   
-  ##  Build Plot Data table such that it is possible to filter data by plantStatus to remove 'no longer measured' and 'downed'
-  ##  Duplicate data controls from Plot Map in Plot Data tab
+  ###################################################################################################
+  ###################################################################################################
+  ##### Gather user input and create content for Plot Data tab ######################################
+  ###################################################################################################
+  ###################################################################################################
+  
+  
+  
+  ###################################################################################################
+  ### Construct sidebar menu content
+  ##  Output domainID selected in Plot Map tab
+  output$dataDomainSelect <- renderText(
+    input$mapDomainChoice
+  )
+  
+  ##  Output siteID selected in Plot Map tab
+  output$dataSiteSelect <- renderText(
+    input$siteChoice
+  )
+  
+  ##  Output eventID selected in Plot Map tab
+  output$dataEventSelect <- renderText(
+    input$eventChoice
+  )
+  
+  ##  Create separate plotID drop-down to populate tables without going back to Plot Map tab
+  output$dataPlotSelect <- renderUI({
+    # Account for null input before user selects an eventid or when user changes sites or domains
+    shiny::validate(
+      need(input$siteChoice != "", ""),
+      need(input$eventChoice != "", "")
+    )
+    
+    # Create drop-down
+    if(input$plotChoice=='' | input$plotChoice=='undefined'){
+      selectInput(inputId = "dataPlotChoice",
+                  label = "Select a plot:",
+                  choices = c(Choose = '', choices = thePlots()),
+                  selectize = TRUE,
+                  multiple = FALSE)
+    } else {
+      selectInput(inputId = "dataPlotChoice",
+                  label = "Select a plot:",
+                  choices = thePlots(),
+                  selected = input$plotChoice,
+                  selectize = TRUE,
+                  multiple = FALSE)
+    }
+  })
+  
+  
+  
+  ###################################################################################################
+  ### Generate table data by filtering joinData() by user-selected plotID
+  plotData <- reactive({
+    # Account for null input before user selects a plotid or when user changes events, sites, or domains
+    shiny::validate(
+      need(input$siteChoice != "" && input$eventChoice != "" && input$dataPlotChoice != "", "")
+    )
+    
+    # Filter joinData() to get all woody records for the plot adn remove cfcOnlyTag records
+    temp <- joinData()
+    
+  })
+  
   
   
   ###################################################################################################
   ### Temporary output to see intermediate data and text
   # Temp text
   output$tempText <- renderText(
-   names(mapData())
+   names(plotData())
   )
   
   # Temp table
-  output$tempTable <- renderTable(
-    mapPoints()
+  output$tempTable <- DT::renderDataTable(
+    DT::datatable(
+      head(plotData()), escape = FALSE, filter = "top" 
+    )
   )
   
   
