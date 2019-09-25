@@ -168,19 +168,39 @@ navbarPage("NEON VST QC v2.0",
                         tabsetPanel(
                           ### Data Table tab pane
                           tabPanel("Data Table",
-                                   h4("Data Table test"),
-                                   
-                                   # Temp text output
-                                   verbatimTextOutput("tempText"),
+                                   br(),
+                                   wellPanel(
+                                     h4("Data Table Filters"),
+                                     #  First fluidRow
+                                     fluidRow(
+                                       column(width = 3,
+                                              # recordtype: ShinyWidget multi-select drop-down
+                                              uiOutput(outputId = "recordTypeSelect")
+                                       ),
+                                       column(width = 3,
+                                              # tagstatus: ShinyWidget multi-select drop-down
+                                              uiOutput(outputId = "tagStatusSelect")
+                                       ),
+                                       column(width = 3,
+                                              # Temp text output
+                                              verbatimTextOutput("tempText")
+                                       )
+                                   ) #  End first fluidRow
+                                     ),
                                    
                                    # Temp table output
                                    DT::dataTableOutput("tempTable")
+                                   
                                    ),
+                          
+                                   
                           
                           ### QC Tables tab pane
                           tabPanel("QC Tables",
                                    h4("QC Tables test")
                                    ),
+                          
+                          
                           
                           ### QC Plots tab pane
                           tabPanel("QC Plots",
@@ -191,7 +211,7 @@ navbarPage("NEON VST QC v2.0",
                         
                         ,
                         
-                      width = 9) # End mainPanel
+                      width = 10) # End mainPanel
                     ) # End sidebarLayout
             ) # End Plot Data tabPanel
            

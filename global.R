@@ -6,6 +6,7 @@ library(ggplot2)
 library(ggrepel)
 library(shiny)
 library(shinythemes)
+library(shinyWidgets)
 
 ######################################################
 ###### CONSTANTS ######

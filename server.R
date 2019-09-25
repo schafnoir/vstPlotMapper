@@ -675,10 +675,84 @@ shinyServer(function(input, output, session) {
       need(input$siteChoice != "" && input$eventChoice != "" && input$dataPlotChoice != "", "")
     )
     
-    # Filter joinData() to get all woody records for the plot adn remove cfcOnlyTag records
-    temp <- joinData()
+    # Filter joinData() to get all woody records for the plot and remove cfcOnlyTag records
+    temp <- joinData() %>% filter(plotsubplotid==input$dataPlotChoice) %>% 
+      filter(is.na(cfconlytag) | cfconlytag=='N') %>%
+      rename(mapstatus = pointstatus, aiFulcrumID = `_record_id.x`, load_status = `load_status.x`) %>% 
+      arrange(subplotid, nestedsubplotid, tagid)
+    
+    # Replace `fulcrum_id` field values with new 'Edit Record' button
+    temp$aiFulcrumID <- paste0("https://web.fulcrumapp.com/records/", temp$aiFulcrumID)
+    temp$aiFulcrumID[temp$load_status=="NONE"] <- paste0('<a href="',temp$aiFulcrumID[temp$load_status=="NONE"],'"',
+                                                         ' target="_blank" class="btn btn-primary">Edit Record</a>')
+    temp$aiFulcrumID[temp$load_status!="NONE"] <- paste0('<a href="',temp$aiFulcrumID[temp$load_status!="NONE"],'"',
+                                                         ' target="_blank" class="btn btn-info">View Loaded Record</a>')
+    temp
     
   })
+  
+  
+  
+  ### Generate choices for recordtype drop-down filter
+  ##  Create reactive variable from recordtype
+  ddRecordType <- reactive({
+    # Account for null input before user selects a dataPlotChoice
+    shiny::validate(
+      need(input$siteChoice != "" && input$eventChoice != "" && input$dataPlotChoice != "", "")
+    )
+    
+    # Obtain list of recordtype values for selected dataPlotChoice
+    temp <- unique(plotData()$recordtype)
+  })
+  
+  
+  ##  Populate drop-down with recordtype values
+  output$recordTypeSelect <- renderUI({
+    # Account for null input beore user selects a dataPlotChoice
+    shiny::validate(
+      need(input$siteChoice != "" && input$eventChoice != "" && input$dataPlotChoice != "", "")
+    )
+    
+    # Create drop-down
+    pickerInput(inputId = "record_type", label = "Record Type",
+                choices = ddRecordType(),
+                selected = ddRecordType(),
+                options = list(`actions-box` = TRUE),
+                multiple = TRUE)
+  })
+  
+  
+  
+  ### Generate choices for tagstatus drop-down filter
+  ##  Create reactive variable from tagstatus
+  ddTagStatus <- reactive({
+    # Account for null input before user selects a dataPlotChoice
+    shiny::validate(
+      need(input$siteChoice != "" && input$eventChoice != "" && input$dataPlotChoice != "", "")
+    )
+    
+    # Obtain list of recordtype values for selected dataPlotChoice
+    temp <- unique(plotData()$tagstatus)
+  })
+  
+  
+  ##  Populate drop-down with tagstatus values
+  output$tagStatusSelect <- renderUI({
+    # Account for null input beore user selects a dataPlotChoice
+    shiny::validate(
+      need(input$siteChoice != "" && input$eventChoice != "" && input$dataPlotChoice != "", "")
+    )
+    
+    # Create drop-down
+    pickerInput(inputId = "tag_status", label = "Tag Status",
+                choices = ddTagStatus(),
+                selected = ddTagStatus(),
+                options = list(`actions-box` = TRUE),
+                multiple = TRUE)
+  })
+  
+  
+  
   
   
   
@@ -686,13 +760,14 @@ shinyServer(function(input, output, session) {
   ### Temporary output to see intermediate data and text
   # Temp text
   output$tempText <- renderText(
-   names(plotData())
+   ddTagStatus()
   )
   
   # Temp table
   output$tempTable <- DT::renderDataTable(
     DT::datatable(
-      head(plotData()), escape = FALSE, filter = "top" 
+      temp <- plotData() %>% filter(recordtype %in% input$record_type, tagstatus %in% input$tag_status), 
+      escape = FALSE, filter = "top" 
     )
   )
   
