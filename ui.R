@@ -183,6 +183,10 @@ navbarPage("NEON VST QC v2.0",
                                        ),
                                        column(width = 3,
                                               # Temp text output
+                                              uiOutput(outputId = "plantStatusSelect")
+                                       ),
+                                       column(width = 3,
+                                              # Placeholder
                                               verbatimTextOutput("tempText")
                                        )
                                    ) #  End first fluidRow

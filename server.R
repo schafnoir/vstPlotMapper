@@ -731,7 +731,7 @@ shinyServer(function(input, output, session) {
       need(input$siteChoice != "" && input$eventChoice != "" && input$dataPlotChoice != "", "")
     )
     
-    # Obtain list of recordtype values for selected dataPlotChoice
+    # Obtain list of tagstatus values for selected dataPlotChoice
     temp <- unique(plotData()$tagstatus)
   })
   
@@ -753,6 +753,34 @@ shinyServer(function(input, output, session) {
   
   
   
+  ### Generate choices for plantstatus drop-down filter
+  ##  Create reactive variable from plantstatus
+  ddPlantStatus <- reactive({
+    # Account for null input before user selects a dataPlotChoice
+    shiny::validate(
+      need(input$siteChoice != "" && input$eventChoice != "" && input$dataPlotChoice != "", "")
+    )
+    
+    # Obtain list of plantstatus values for selected dataPlotChoice
+    temp <- sort(as.numeric(unique(plotData()$plantstatus)))
+  })
+  
+  
+  ##  Populate drop-down with plantstatus values
+  output$plantStatusSelect <- renderUI({
+    # Account for null input beore user selects a dataPlotChoice
+    shiny::validate(
+      need(input$siteChoice != "" && input$eventChoice != "" && input$dataPlotChoice != "", "")
+    )
+    
+    # Create drop-down
+    pickerInput(inputId = "plant_status", label = "Plant Status",
+                choices = ddPlantStatus(),
+                selected = ddPlantStatus(),
+                options = list(`actions-box` = TRUE),
+                multiple = TRUE)
+  })
+  
   
   
   
@@ -760,13 +788,14 @@ shinyServer(function(input, output, session) {
   ### Temporary output to see intermediate data and text
   # Temp text
   output$tempText <- renderText(
-   ddTagStatus()
+   ddPlantStatus()
   )
   
   # Temp table
   output$tempTable <- DT::renderDataTable(
     DT::datatable(
-      temp <- plotData() %>% filter(recordtype %in% input$record_type, tagstatus %in% input$tag_status), 
+      temp <- plotData() %>% filter(recordtype %in% input$record_type, tagstatus %in% input$tag_status,
+                                    plantstatus %in% input$plant_status), 
       escape = FALSE, filter = "top" 
     )
   )
