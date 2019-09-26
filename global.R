@@ -1,12 +1,13 @@
 library(dplyr)
-library(httr)
-library(jsonlite)
-library(stringr)
 library(ggplot2)
 library(ggrepel)
+library(httr)
+library(jsonlite)
+library(plotly)
 library(shiny)
 library(shinythemes)
 library(shinyWidgets)
+library(stringr)
 
 ######################################################
 ###### CONSTANTS ######

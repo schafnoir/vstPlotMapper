@@ -2,7 +2,11 @@
 navbarPage("NEON VST QC v2.0", 
            tabPanel("About",
                     fluidRow(
-                      column(width=2),
+                      # First column
+                      column(width=3,
+                             img(src = "treeSilhouette.png", align = "left")
+                             ),
+                      # Second column
                       column(width=8,
                              wellPanel(
                                h4("General"),
@@ -48,7 +52,8 @@ navbarPage("NEON VST QC v2.0",
                                p("Clicking the 'Download (.csv)' button allows plot-level data to be readily organized into a checklist when working in the field.")
 
                                )),
-                      column(width=2)
+                      # Third column - empty
+                      column(width=1)
                                )
                                ), # End About tabPanel
            
@@ -94,12 +99,17 @@ navbarPage("NEON VST QC v2.0",
                                       # helpText to explain limitations of coding by shape
                                       helpText("A maximum of 6 species can be displayed when 'Shape' is selected."),
                                       
-                                      # Checkboxes to select whether additional components are added to ggplot
-                                      checkboxGroupInput("labelChecks", label = "Add data layers:", 
-                                                       choices = list("tagIDs" = "tags", "plotMarkers" = "markers")),
                                       
-                                      # Download button for .pdf of Plot Map
-                                      downloadButton('downloadPlotMap', 'Download (.pdf)', class="btn btn-primary")
+                                      ##  wellPanel for download options
+                                      wellPanel(
+                                        # Checkboxes to select whether additional components are added to downloaded ggplot
+                                        checkboxGroupInput("labelChecks", label = "PDF data layers:",
+                                                           choices = list("tagIDs" = "tags", "plotMarkers" = "markers")),
+                                        
+                                        # Download button for .pdf of Plot Map
+                                        downloadButton('downloadPlotMap', 'Download (.pdf)', class="btn btn-primary")
+                                      )
+                                      
                                     ), #  End conditionalPanel
                                    
                                     # Set width of sidebarPanel
@@ -122,7 +132,7 @@ navbarPage("NEON VST QC v2.0",
                                     
                                     # Second fluidRow for plotMap content
                                     fluidRow(style = "height:900px;",
-                                      plotOutput("mapPlot")
+                                      plotlyOutput("mapPlot")
                                     ), #  End fluidRow
                                     
                                     # Third fluidRow for table to display nested subplot sizes
@@ -144,28 +154,25 @@ navbarPage("NEON VST QC v2.0",
            
            
            tabPanel("Plot Data",
-                    sidebarLayout(
-                      # sidebarPanel to contain user controls
-                      sidebarPanel(
-                        # Display user domain, site, and event selections from Plot Map tab. 
-                        helpText("Selected NEON domain:"),
-                        verbatimTextOutput("dataDomainSelect"),
-                        helpText("Selected NEON site:"),
-                        verbatimTextOutput("dataSiteSelect"),
-                        helpText("Selected VST event:"),
-                        verbatimTextOutput("dataEventSelect"),
-                        uiOutput("dataPlotSelect"),
-                        
-                        
-                        
-                        width = 2
-                      ), #  End sidebarPanel
+                    # Plot-select controls wellPanel
+                    wellPanel(
+                      fluidRow(
+                        column(width = 3, h4("Plot Select:")),
+                        column(width = 3, h5("Selected VST event:")),
+                        column(width = 3, h5("Selected NEON site:")),
+                        column(width = 3, h5("Selected NEON domain:"))
+                      ),
+                      fluidRow(
+                        column(width = 3, uiOutput("dataPlotSelect")),
+                        column(width = 3, verbatimTextOutput("dataEventSelect")),
+                        column(width = 3, verbatimTextOutput("dataSiteSelect")),
+                        column(width = 3, verbatimTextOutput("dataDomainSelect"))
+                      )
+                    ),
+                    
                       
-                      # mainPanel to contain tabPanel 'tabs' content
-                      
-                      ############################  Next step is to create tabs and then put mainPanel within Data Table tab
-                      mainPanel(
-                        tabsetPanel(
+                    # tabPanel for 'tabs' content
+                    tabsetPanel(
                           ### Data Table tab pane
                           tabPanel("Data Table",
                                    br(),
@@ -173,27 +180,32 @@ navbarPage("NEON VST QC v2.0",
                                      h4("Data Table Filters"),
                                      #  First fluidRow
                                      fluidRow(
-                                       column(width = 3,
+                                       column(width = 2,
                                               # recordtype: ShinyWidget multi-select drop-down
                                               uiOutput(outputId = "recordTypeSelect")
                                        ),
-                                       column(width = 3,
+                                       column(width = 2,
                                               # tagstatus: ShinyWidget multi-select drop-down
                                               uiOutput(outputId = "tagStatusSelect")
                                        ),
-                                       column(width = 3,
-                                              # Temp text output
+                                       column(width = 2,
+                                              # growthform: ShinyWidget multi-select drop-down
+                                              uiOutput(outputId = "growthFormSelect")
+                                       ),
+                                       column(width = 2,
+                                              # plantstatus: ShinyWidget multi-select drop-down
                                               uiOutput(outputId = "plantStatusSelect")
                                        ),
-                                       column(width = 3,
-                                              # Placeholder
-                                              verbatimTextOutput("tempText")
-                                       )
+                                       column(width = 2,
+                                              # Button to download user-filtered data as .csv file
+                                              h5("Download filtered data:"),
+                                              downloadButton('downloadDataTable', 'Download (.csv)', class="btn btn-primary")
+                                              )
                                    ) #  End first fluidRow
-                                     ),
+                                     ), # End filters wellPanel
                                    
-                                   # Temp table output
-                                   DT::dataTableOutput("tempTable")
+                                   # Filtered Data Table output
+                                   DT::dataTableOutput("filterDataTable")
                                    
                                    ),
                           
@@ -201,7 +213,15 @@ navbarPage("NEON VST QC v2.0",
                           
                           ### QC Tables tab pane
                           tabPanel("QC Tables",
-                                   h4("QC Tables test")
+                                   h4("QC Tables test"),
+                                   
+                                   #  Temp Text output
+                                   h5("Temp text"),
+                                   verbatimTextOutput("tempText"),
+                                   
+                                   h5("Temp Table"),
+                                   # Temp Table output
+                                   DT::dataTableOutput("tempTable")
                                    ),
                           
                           
@@ -213,10 +233,10 @@ navbarPage("NEON VST QC v2.0",
                         )
                         
                         
-                        ,
                         
-                      width = 10) # End mainPanel
-                    ) # End sidebarLayout
+                        
+                      
+                    
             ) # End Plot Data tabPanel
            
            

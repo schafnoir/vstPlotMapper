@@ -141,10 +141,11 @@ shinyServer(function(input, output, session) {
       need(input$siteChoice != "", ""),
       need(input$eventChoice != "", "")
     )
-    # Join aiData, mtData, and plotSpatial data frames
+    # Join aiData, mtData, and plotSpatial data frames and re-assign data types for selected columns
     temp <- dplyr::left_join(aiData(), mtData(), by = "individualid")
     temp <- dplyr::inner_join(temp, plotSpatial, by = "plotid")
     temp$pointid <- as.integer(temp$pointid)
+    temp$plantstatus <- as.numeric(temp$plantstatus)
     
     # Standardize `noneSelected` strings for nestedliana, nestedother, and nestedshrubsapling
     temp <- temp %>% 
@@ -420,27 +421,25 @@ shinyServer(function(input, output, session) {
   
   
   ##  Render the ggplot to output, and include plot modifications from user input
-  output$mapPlot <- renderPlot({
+  output$mapPlot <- renderPlotly({
     # Account for null input before user selects a plotid or when user changes events, sites, or domains
     shiny::validate(
       need(input$siteChoice != "" && input$eventChoice != "" && input$plotChoice != "", "")
     )
     # Add layers to base map of plot
     p = ggMap()
-    if (input$taxonRadio=="color") p = p + geom_point(data = mapData(), aes(x = stemeasting, y = stemnorthing, color = taxonid, size = stemdiameter),
+    if (input$taxonRadio=="color") p = p + geom_point(data = mapData(), aes(x = stemeasting, y = stemnorthing, color = taxonid,
+                                                                            size = stemdiameter, label = tagid),
                                                  shape = 21, stroke = 0.8, show.legend = TRUE)
-    if (input$taxonRadio=="shape") p = p + geom_point(data = mapData(), aes(x = stemeasting, y = stemnorthing, shape = taxonid),
+    if (input$taxonRadio=="shape") p = p + geom_point(data = mapData(), aes(x = stemeasting, y = stemnorthing, shape = taxonid,
+                                                                            label = tagid),
                                                  size = 2.75, stroke = 0.8, show.legend = TRUE) +
       scale_shape_discrete(solid = FALSE)
-    if ("tags" %in% input$labelChecks) p = p + geom_text_repel(data=mapData(), aes(x=stemeasting, y=stemnorthing, label=tagid), size=4, 
-                                                              nudge_x = 0.3, nudge_y = 0.3)
-    if ("markers" %in% input$labelChecks) p = p + geom_label(aes(label = pointid), fill = "#FF6C5E", show.legend = FALSE)
-    p
-  }, height = 900)
-  
-  
-  
-  
+    
+    # Convert output to interactive plotly
+    p = ggplotly(p, height = 900, tooltip = c("tagid", "taxonid", "stemdiameter"))
+    
+  })
   
   
   
@@ -657,7 +656,7 @@ shinyServer(function(input, output, session) {
                   multiple = FALSE)
     } else {
       selectInput(inputId = "dataPlotChoice",
-                  label = "Select a plot:",
+                  label = NULL,
                   choices = thePlots(),
                   selected = input$plotChoice,
                   selectize = TRUE,
@@ -678,8 +677,7 @@ shinyServer(function(input, output, session) {
     # Filter joinData() to get all woody records for the plot and remove cfcOnlyTag records
     temp <- joinData() %>% filter(plotsubplotid==input$dataPlotChoice) %>% 
       filter(is.na(cfconlytag) | cfconlytag=='N') %>%
-      rename(mapstatus = pointstatus, aiFulcrumID = `_record_id.x`, load_status = `load_status.x`) %>% 
-      arrange(subplotid, nestedsubplotid, tagid)
+      rename(mapStatus = pointstatus, aiFulcrumID = `_record_id.x`, load_status = `load_status.x`)
     
     # Replace `fulcrum_id` field values with new 'Edit Record' button
     temp$aiFulcrumID <- paste0("https://web.fulcrumapp.com/records/", temp$aiFulcrumID)
@@ -687,7 +685,25 @@ shinyServer(function(input, output, session) {
                                                          ' target="_blank" class="btn btn-primary">Edit Record</a>')
     temp$aiFulcrumID[temp$load_status!="NONE"] <- paste0('<a href="',temp$aiFulcrumID[temp$load_status!="NONE"],'"',
                                                          ' target="_blank" class="btn btn-info">View Loaded Record</a>')
-    temp
+    
+    # Select columns needed for drop-down generation and display and rename some to shorten for display
+    temp <- temp %>% 
+      select(aiFulcrumID, basalstemdiameter, basalstemdiametermeasurementheight, ddsubplotid, eventid,
+             growthform, load_status, mapStatus, measurementheight, nestedsubplotid, plantstatus, plotid, 
+             recordtype, shape, stemdiameter, subplotid, tagid, tagstatus, taxonid) %>%
+      rename(basalStemDiam = basalstemdiameter, basalMHeight = basalstemdiametermeasurementheight,
+             eventID = eventid, gForm = growthform, mHeight = measurementheight, nSubID = nestedsubplotid,
+             pStatus = plantstatus, plotID = plotid, recordType = recordtype, stemDiam = stemdiameter,
+             subID = subplotid, tagID = tagid, tagStatus = tagstatus, taxonID = taxonid) %>%
+      arrange(subID, nSubID, tagID)
+    
+    # Fix null values in gForm that otherwise result in loss of records when table is displayed
+    temp <- temp %>% mutate(gForm = ifelse(is.na(gForm), "blank", gForm))
+    
+    # Arrange columns
+    temp <- temp[c("aiFulcrumID", "load_status", "eventID", "plotID", "subID", "nSubID", "recordType", "mapStatus",
+                   "tagID", "tagStatus", "taxonID", "gForm", "mHeight", "stemDiam", "basalMHeight", "basalStemDiam",
+                   "pStatus", "shape", "ddsubplotid")]
     
   })
   
@@ -702,7 +718,7 @@ shinyServer(function(input, output, session) {
     )
     
     # Obtain list of recordtype values for selected dataPlotChoice
-    temp <- unique(plotData()$recordtype)
+    temp <- sort(unique(plotData()$recordType))
   })
   
   
@@ -732,7 +748,7 @@ shinyServer(function(input, output, session) {
     )
     
     # Obtain list of tagstatus values for selected dataPlotChoice
-    temp <- unique(plotData()$tagstatus)
+    temp <- sort(unique(plotData()$tagStatus))
   })
   
   
@@ -762,7 +778,7 @@ shinyServer(function(input, output, session) {
     )
     
     # Obtain list of plantstatus values for selected dataPlotChoice
-    temp <- sort(as.numeric(unique(plotData()$plantstatus)))
+    temp <- sort(unique(plotData()$pStatus))
   })
   
   
@@ -783,19 +799,78 @@ shinyServer(function(input, output, session) {
   
   
   
+  ### Generate choices for growthform drop-down filter
+  ##  Create reactive variable from growthform
+  ddGrowthForm <- reactive({
+    # Account for null input before user selects a dataPlotChoice
+    shiny::validate(
+      need(input$siteChoice != "" && input$eventChoice != "" && input$dataPlotChoice != "", "")
+    )
+    
+    # Obtain list of growthform values for selected dataPlotChoice
+    temp <- sort(unique(plotData()$gForm))
+  })
+  
+  
+  ##  Populate drop-down with growthform values
+  output$growthFormSelect <- renderUI({
+    # Account for null input beore user selects a dataPlotChoice
+    shiny::validate(
+      need(input$siteChoice != "" && input$eventChoice != "" && input$dataPlotChoice != "", "")
+    )
+    
+    # Create drop-down
+    pickerInput(inputId = "growth_form", label = "Growth Form",
+                choices = ddGrowthForm(),
+                selected = ddGrowthForm(),
+                options = list(`actions-box` = TRUE),
+                multiple = TRUE)
+  })
+  
+  
+  
+  ### Render plotData() for display in Data Table tab
+  output$filterDataTable <- DT::renderDataTable(
+    DT::datatable(
+      temp <- plotData() %>% 
+        filter(recordType %in% input$record_type, tagStatus %in% input$tag_status,
+               pStatus %in% input$plant_status, gForm %in% input$growth_form) %>%
+        select(-ddsubplotid, -eventID, -load_status, -plotID), 
+      escape = FALSE, filter = "top" 
+    )
+  )
+  
+  
+  
+  ### Create download file and button for filtered table contents
+  # Create download .csv
+  output$downloadDataTable <- downloadHandler(
+    filename = function() { 
+      paste0(paste(unique(plotData()$plotID), unique(plotData()$ddsubplotid), sep = "_"), '.csv') 
+    },
+   content = function(file) {
+     temp <- plotData() %>%
+       filter(recordType %in% input$record_type, tagStatus %in% input$tag_status,
+              pStatus %in% input$plant_status, gForm %in% input$growth_form) %>%
+       select(-ddsubplotid)
+     write.csv(temp, file, row.names = FALSE)
+   }
+  )
+  
+  
+  
   
   ###################################################################################################
-  ### Temporary output to see intermediate data and text
+  ### Temporary output to see intermediate data and text during development
   # Temp text
   output$tempText <- renderText(
-   ddPlantStatus()
+   unique(plotData()$gForm)
   )
   
   # Temp table
   output$tempTable <- DT::renderDataTable(
     DT::datatable(
-      temp <- plotData() %>% filter(recordtype %in% input$record_type, tagstatus %in% input$tag_status,
-                                    plantstatus %in% input$plant_status), 
+      temp <- plotData(),
       escape = FALSE, filter = "top" 
     )
   )
