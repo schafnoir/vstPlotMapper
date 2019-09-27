@@ -176,8 +176,7 @@ navbarPage("NEON VST QC v2.0",
                           ### Data Table tab pane
                           tabPanel("Data Table",
                                    br(),
-                                   wellPanel(
-                                     h4("Data Table Filters"),
+                                   h4("Data Table Filters"),
                                      #  First fluidRow
                                      fluidRow(
                                        column(width = 2,
@@ -201,9 +200,10 @@ navbarPage("NEON VST QC v2.0",
                                               h5("Download filtered data:"),
                                               downloadButton('downloadDataTable', 'Download (.csv)', class="btn btn-primary")
                                               )
-                                   ) #  End first fluidRow
-                                     ), # End filters wellPanel
+                                   ), #  End first fluidRow
                                    
+                                   br(),
+                                   hr(),
                                    # Filtered Data Table output
                                    DT::dataTableOutput("filterDataTable")
                                    

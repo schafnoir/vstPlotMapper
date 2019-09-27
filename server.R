@@ -401,8 +401,8 @@ shinyServer(function(input, output, session) {
       # Remove axis and grid lines from panel
       theme(panel.grid = element_blank()) +
       theme(axis.text = element_text(size = 12)) +
-      theme(axis.title = element_text(size = 14, face = "bold")) +
-      theme(legend.text = element_text(size=12)) +
+      theme(axis.title = element_text(size = 12, face = "bold")) +
+      theme(legend.text = element_text(size=10)) +
       theme(title = element_text(size=14)) +
       
       # Set axis ticks to begin at minimum easting and northing values in mapPoints, and space every 5 meters
@@ -416,7 +416,7 @@ shinyServer(function(input, output, session) {
       geom_segment(x = E3(), y = N3(), xend = E4(), yend = N4(), color = "grey30") +
       
       # Add corner points (and centroid if present) using high-res GPS data
-      geom_point(size=3, shape=21, colour="black", fill="red", stroke=1, show.legend = FALSE)
+      geom_point(size=3, shape=21, colour="black", fill="red", stroke=0.5, show.legend = FALSE)
   })
   
   
@@ -430,10 +430,10 @@ shinyServer(function(input, output, session) {
     p = ggMap()
     if (input$taxonRadio=="color") p = p + geom_point(data = mapData(), aes(x = stemeasting, y = stemnorthing, color = taxonid,
                                                                             size = stemdiameter, label = tagid),
-                                                 shape = 21, stroke = 0.8, show.legend = TRUE)
+                                                 shape = 21, stroke = 0.5, show.legend = TRUE)
     if (input$taxonRadio=="shape") p = p + geom_point(data = mapData(), aes(x = stemeasting, y = stemnorthing, shape = taxonid,
                                                                             label = tagid),
-                                                 size = 2.75, stroke = 0.8, show.legend = TRUE) +
+                                                 size = 2.75, stroke = 0.5, show.legend = TRUE) +
       scale_shape_discrete(solid = FALSE)
     
     # Convert output to interactive plotly
