@@ -68,7 +68,7 @@ shinyServer(function(input, output, session) {
   ##  Render output to eventID dropdown
   output$eventSelect <- renderUI({
     selectInput("eventChoice", "Select a VST event:", c(Choose = '', choices = aiEvents()),
-                  selectize = TRUE, multiple = FALSE)
+                selectize = TRUE, multiple = FALSE)
   })
   
   
@@ -77,7 +77,7 @@ shinyServer(function(input, output, session) {
   ###################################################################################################
   ### Construct joined M&T and AI dataset for the siteID and eventID selected by the user.
   ### Use `plotID`s present in joined dataset to populate plot selection drop-down
- 
+  
   ### Query and retrieve Mapping and Tagging data based on user-selected siteID
   ##  Construct Fulcrum query
   mtQuery <- reactive({
@@ -116,9 +116,9 @@ shinyServer(function(input, output, session) {
     
     # Define Fulcrum query and specify required columns
     paste(URLencode('SELECT parent._record_id, parent.load_status, parent.eventid, child._child_record_id, child.individualid, child.tagstatus, child.plantstatus, child.growthform, child.shape, child.stemdiameter, child.measurementheight, child.basalstemdiameter, child.basalstemdiametermeasurementheight, child.vdapexheight, child.vdbaseheight, child.maxcrowndiameter, child.ninetycrowndiameter, child.canopyposition FROM "VST: Apparent Individuals [PROD]" AS parent JOIN "VST: Apparent Individuals [PROD]/vst_woody_stems" AS child'),
-                   URLencode(paste0("ON (parent._record_id = child._parent_id) WHERE siteid LIKE '", input$siteChoice, "'",
-                                    "AND eventid LIKE '", input$eventChoice, "'")),
-                   sep = "%20")
+          URLencode(paste0("ON (parent._record_id = child._parent_id) WHERE siteid LIKE '", input$siteChoice, "'",
+                           "AND eventid LIKE '", input$eventChoice, "'")),
+          sep = "%20")
   })
   
   ##  Retrieve Fulcrum AI data for site x event using query
@@ -163,11 +163,11 @@ shinyServer(function(input, output, session) {
     # Create new `ddsubplotid` variable for plot-selection drop-down
     temp <- temp %>%
       dplyr::mutate(ddsubplotid = as.integer(ifelse(plottype != "lgTower", 31, 
-                                         ifelse(subplotid %in% c(21,22,30,31), 21,
-                                                ifelse(subplotid %in% c(23,24,32,33), 23,
-                                                       ifelse(subplotid %in% c(39,40,48,49), 39,
-                                                              ifelse(subplotid %in% c(41,42,50,51), 41,
-                                                                     "NA")))))))
+                                                    ifelse(subplotid %in% c(21,22,30,31), 21,
+                                                           ifelse(subplotid %in% c(23,24,32,33), 23,
+                                                                  ifelse(subplotid %in% c(39,40,48,49), 39,
+                                                                         ifelse(subplotid %in% c(41,42,50,51), 41,
+                                                                                "NA")))))))
     
     # Create `plotsubplotid` to later pipe to plotChoice drop-down: e.g., "(T) BART_050: 21"
     temp <- temp %>%
@@ -224,7 +224,7 @@ shinyServer(function(input, output, session) {
     
     # Create drop-down
     selectInput("plotChoice", "Select a plot:", c(Choose='', choices = thePlots()),
-                  selectize = TRUE, multiple = FALSE)
+                selectize = TRUE, multiple = FALSE)
   })
   
   
@@ -262,7 +262,7 @@ shinyServer(function(input, output, session) {
     # Check for presence of `pointstatus` = errorPointID
     temp <- joinData() %>% filter(plotsubplotid==input$plotChoice)
     if("errorPointID" %in% temp$pointstatus){
-      warning <- "Mapping Error: An invalid pointID was used in the field to map at least one woody individual. To find errors, go to the Plot Data tab and search by 'mapStatus'."
+      warning <- "Mapping Error: An invalid pointID was used in the field to map at least one woody individual. To find errors, go to the Plot Data tab and search by 'pointstatus'."
       return(warning)
     }
     
@@ -375,6 +375,7 @@ shinyServer(function(input, output, session) {
   ##  Build plot title
   output$plotTitle <- renderText({
     shiny::validate(
+      #need(input$siteChoice != "", ""),
       need(input$siteChoice != "" && input$eventChoice != "" && input$plotChoice != "", "Please select a plot to map")
     )
     paste0("Plot Map: ", input$plotChoice)
@@ -426,13 +427,13 @@ shinyServer(function(input, output, session) {
       need(input$siteChoice != "" && input$eventChoice != "" && input$plotChoice != "", "")
     )
     # Add layers to base map of plot
-    p = ggMap()
-    if (input$taxonRadio=="color") p = p + geom_point(data = mapData(), aes(x = stemeasting, y = stemnorthing, color = taxonid,
+    p <- ggMap()
+    if (input$taxonRadio=="color") p <- p + geom_point(data = mapData(), aes(x = stemeasting, y = stemnorthing, color = taxonid,
                                                                             size = stemdiameter, label = tagid),
-                                                 shape = 21, stroke = 0.5, show.legend = TRUE)
-    if (input$taxonRadio=="shape") p = p + geom_point(data = mapData(), aes(x = stemeasting, y = stemnorthing, shape = taxonid,
+                                                      shape = 21, stroke = 0.5, show.legend = TRUE)
+    if (input$taxonRadio=="shape") p <- p + geom_point(data = mapData(), aes(x = stemeasting, y = stemnorthing, shape = taxonid,
                                                                             label = tagid),
-                                                 size = 2.75, stroke = 0.5, show.legend = TRUE) +
+                                                      size = 2.75, stroke = 0.5, show.legend = TRUE) +
       scale_shape_discrete(solid = FALSE)
     
     # Convert output to interactive plotly
@@ -625,7 +626,7 @@ shinyServer(function(input, output, session) {
   
   
   ###################################################################################################
-  ### Construct top menu content
+  ### Construct sidebar menu content
   ##  Output domainID selected in Plot Map tab
   output$dataDomainSelect <- renderText(
     input$mapDomainChoice
@@ -669,10 +670,6 @@ shinyServer(function(input, output, session) {
   
   
   ###################################################################################################
-  ##### Data Table Tab content  #####################################################################
-  ###################################################################################################
-  
-  
   ### Generate table data by filtering joinData() by user-selected plotID
   plotData <- reactive({
     # Account for null input before user selects a plotid or when user changes events, sites, or domains
@@ -706,7 +703,7 @@ shinyServer(function(input, output, session) {
     # Fix null values in gForm that otherwise result in loss of records when table is displayed
     temp <- temp %>% mutate(gForm = ifelse(is.na(gForm), "blank", gForm))
     
-    # Arrange columns
+    # Arrange fields
     temp <- temp[c("aiFulcrumID", "load_status", "eventID", "plotID", "subID", "nSubID", "recordType", "mapStatus",
                    "tagID", "tagStatus", "taxonID", "gForm", "mHeight", "stemDiam", "basalMHeight", "basalStemDiam",
                    "pStatus", "shape", "ddsubplotid", "individualid")]
@@ -854,15 +851,14 @@ shinyServer(function(input, output, session) {
     filename = function() { 
       paste0(paste(unique(plotData()$plotID), unique(plotData()$ddsubplotid), sep = "_"), '.csv') 
     },
-   content = function(file) {
-     temp <- plotData() %>%
-       filter(recordType %in% input$record_type, tagStatus %in% input$tag_status,
-              pStatus %in% input$plant_status, gForm %in% input$growth_form) %>%
-       select(-ddsubplotid, -individualid)
-     write.csv(temp, file, row.names = FALSE)
-   }
+    content = function(file) {
+      temp <- plotData() %>%
+        filter(recordType %in% input$record_type, tagStatus %in% input$tag_status,
+               pStatus %in% input$plant_status, gForm %in% input$growth_form) %>%
+        select(-ddsubplotid, -individualid)
+      write.csv(temp, file, row.names = FALSE)
+    }
   )
-  
   
   
   
@@ -873,16 +869,63 @@ shinyServer(function(input, output, session) {
   ### Create summary table of strict duplicates found in plotData()
   ##  Create reactive data frame with strict duplicates
   dupPlotData <- reactive({
-    # Account for null input beore user selects a dataPlotChoice
-    shiny::validate(
-      need(input$siteChoice != "" && input$eventChoice != "" && input$dataPlotChoice != "", "Please select a plot")
-    )
-    
-    # Identify strict duplicates in plotData() and select a subset of columns for display
     temp <- plotData() %>% 
-      filter(duplicated(plotData())) #%>%
-      #select()
+      filter(duplicated(plotData())) %>%
+      select(aiFulcrumID, basalStemDiam, basalMHeight, gForm, mHeight, nSubID, pStatus, shape, stemDiam,
+             subID, tagID, taxonID) %>%
+      arrange(subID, nSubID, tagID)
+    
+    # Arrange fields
+    temp <- temp[c("aiFulcrumID", "subID", "nSubID", "tagID", "taxonID", "gForm", "mHeight", "stemDiam",
+                   "basalMHeight", "basalStemDiam", "pStatus", "shape")]
+      
   })
+  
+  
+  ##  Render dupPlotData for display
+  output$strictDupes <- DT::renderDataTable(
+    DT::datatable(
+      temp <- dupPlotData(),
+      escape = FALSE, filter = "top"
+    )
+  )
+  
+  
+  
+  ### Create summary table of duplicates in plotData() based on individualID only
+  ##  Create reactive data frame with individualID duplicates
+  iDupPlotData <- reactive({
+    temp <- plotData() %>%
+      filter(duplicated(plotData()$individualid)) %>%
+      select(aiFulcrumID, basalStemDiam, basalMHeight, gForm, mHeight, nSubID, pStatus, shape, stemDiam,
+             subID, tagID, taxonID) %>%
+      arrange(subID, nSubID, tagID)
+    
+    # Arrange fields
+    temp <- temp[c("aiFulcrumID", "subID", "nSubID", "tagID", "taxonID", "gForm", "mHeight", "stemDiam",
+                   "basalMHeight", "basalStemDiam", "pStatus", "shape")]
+  })
+  
+  
+  ##  Render iDupPlotData for display
+  output$iDupes <- DT::renderDataTable(
+    DT::datatable(
+      temp <- iDupPlotData(),
+      escape = FALSE, filter = "top"
+    )
+  )
+  
+  
+  
+  ###################################################################################################
+  ### Create table of individualIDs measured last year that were not measured this year
+  ### Use group_by(individualid) %>% distinct(.keep_all) to deal with multi-stemmed sis, sap, etc.
+  ### Want recordType, tagID, tagStatus, taxonID, gForm, pStatus fields
+  
+  
+  
+  
+  
   
   
   
@@ -890,7 +933,7 @@ shinyServer(function(input, output, session) {
   ### Temporary output to see intermediate data and text during development
   # Temp text
   output$tempText <- renderText(
-   names(dupPlotData())
+    names(dupPlotData())
   )
   
   # Temp table

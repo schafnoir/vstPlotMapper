@@ -1,8 +1,12 @@
 ### Define UI for Veg Structure Plot Mapper application
-navbarPage("NEON VST Mapper", 
+navbarPage("NEON VST QC v2.0", 
            tabPanel("About",
                     fluidRow(
-                      column(width=2),
+                      # First column
+                      column(width=3,
+                             img(src = "treeSilhouette.png", align = "left")
+                             ),
+                      # Second column
                       column(width=8,
                              wellPanel(
                                h4("General"),
@@ -48,7 +52,8 @@ navbarPage("NEON VST Mapper",
                                p("Clicking the 'Download (.csv)' button allows plot-level data to be readily organized into a checklist when working in the field.")
 
                                )),
-                      column(width=2)
+                      # Third column - empty
+                      column(width=1)
                                )
                                ), # End About tabPanel
            
@@ -59,7 +64,7 @@ navbarPage("NEON VST Mapper",
                                   sidebarPanel(
                                     # Select domainID from list of domains with VST data
                                     selectInput(
-                                      inputId = "domainSelect",
+                                      inputId = "mapDomainChoice",
                                       label = "Select a NEON domain:",
                                       c(Choose = '', theDomains),
                                       selectize = TRUE,
@@ -69,28 +74,42 @@ navbarPage("NEON VST Mapper",
                                     # Select siteID filtered by selected domainID
                                     uiOutput(outputId = "siteSelect"),
                                     
-                                    # After siteChoice selected, conditional panel for selecting plotIDs
+                                    # After user selects site, conditional panel for selecting eventID
                                     conditionalPanel(
                                       condition = "input.siteChoice !=''",
-                                      uiOutput(outputId = "plotChoices")
+                                      uiOutput(outputId = "eventSelect")
+                                    ),
+                                    
+                                    # After user selects eventID, conditional panel for selecting plotID
+                                    conditionalPanel(
+                                      condition = "input.siteChoice !='' && input.eventChoice !=''",
+                                      uiOutput(outputId = "plotSelect")
                                     ),
                                     
                                     ##  After plotSelect, conditional panel for graphing options
                                     conditionalPanel(
-                                      condition = "input.plotSelect !=''",
+                                      condition = "(typeof input.siteChoice !== 'undefined' && input.siteChoice !== '' &&
+                                      input.eventChoice !== 'undefined' && input.eventChoice !== '' &&
+                                      input.plotChoice !== 'undefined' && input.plotChoice !== '')",
+                                      
                                       # Radio buttons to determine whether taxonid is coded by color or shape
-                                      radioButtons("radio", label = "Code taxonID by:",
+                                      radioButtons("taxonRadio", label = "Code taxonID by:",
                                                  choices = list("Color" = "color", "Shape" = "shape")),
                                       
                                       # helpText to explain limitations of coding by shape
                                       helpText("A maximum of 6 species can be displayed when 'Shape' is selected."),
                                       
-                                      # Checkboxes to select whether additional components are added to ggplot
-                                      checkboxGroupInput("checkGroup", label = "Add data layers:", 
-                                                       choices = list("tagIDs" = "tags", "plotMarkers" = "markers")),
                                       
-                                      # Download button for .pdf of Plot Map
-                                      downloadButton('downloadPlotMap', 'Download (.pdf)', class="btn btn-primary")
+                                      ##  wellPanel for download options
+                                      wellPanel(
+                                        # Checkboxes to select whether additional components are added to downloaded ggplot
+                                        checkboxGroupInput("labelChecks", label = "PDF data layers:",
+                                                           choices = list("tagIDs" = "tags", "plotMarkers" = "markers")),
+                                        
+                                        # Download button for .pdf of Plot Map
+                                        downloadButton('downloadPlotMap', 'Download (.pdf)', class="btn btn-primary")
+                                      )
+                                      
                                     ), #  End conditionalPanel
                                    
                                     # Set width of sidebarPanel
@@ -100,30 +119,125 @@ navbarPage("NEON VST Mapper",
                                   
                                   # Main panel of the page
                                   mainPanel(
-                                    # Display plot title
-                                    h4(textOutput("plotTitle")),
+                                    # First fluidRow for Plot Title and Warnings
+                                    fluidRow(
+                                      wellPanel(
+                                        h4(textOutput("plotTitle")),
+                                        textOutput("mapPointError"),
+                                        textOutput("mapDataWarning"),
+                                        tags$head(tags$style("#mapPointError{color:#C40000}",
+                                                           "#mapDataWarning{color:#C40000}"))
+                                        ) # End wellPanel
+                                    ), #  End fluidRow
                                     
-                                    # Display ggplot
-                                    plotOutput("plotMap")
+                                    # Second fluidRow for plotMap content
+                                    fluidRow(style = "height:900px;",
+                                      plotlyOutput("mapPlot")
+                                    ), #  End fluidRow
                                     
-                                  ) # End mainPanel
+                                    # Third fluidRow for table to display nested subplot sizes
+                                    fluidRow(style = "padding-top:10px;",
+                                    conditionalPanel(
+                                      condition = "(typeof input.siteChoice !== 'undefined' && input.siteChoice !== '' &&
+                                      input.eventChoice !== 'undefined' && input.eventChoice !== '' &&
+                                      input.plotChoice !== 'undefined' && input.plotChoice !== '')",
+                                      wellPanel(
+                                        h5("Nested Subplot Sizes for Selected Plot:"),
+                                        tableOutput("nestedTable")
+                                      )
+                                    )
+                                    ), # End fluidRow
+                                  width = 8) # End mainPanel
                     ) # End sidebarLayout
             ), #  End Plot Map tabPanel
            
            
            
            tabPanel("Plot Data",
-                    fluidRow(
-                      column(width = 12, 
-                             wellPanel(helpText("Retrieve data from tagged individuals in the plot"), 
-                                       downloadButton('downloadData', 'Download (.csv)', class="btn btn-primary")
-                             ) # End wellPanel
-                      ) # End column
-                    ), # End first fluidRow
+                    # Plot-select controls wellPanel
+                    wellPanel(
+                      fluidRow(
+                        column(width = 3, h5("Plot Select:")),
+                        column(width = 3, h5("Selected VST event:")),
+                        column(width = 3, h5("Selected NEON site:")),
+                        column(width = 3, h5("Selected NEON domain:"))
+                      ),
+                      fluidRow(
+                        column(width = 3, uiOutput("dataPlotSelect")),
+                        column(width = 3, verbatimTextOutput("dataEventSelect")),
+                        column(width = 3, verbatimTextOutput("dataSiteSelect")),
+                        column(width = 3, verbatimTextOutput("dataDomainSelect"))
+                      )
+                    ),
                     
-                    fluidRow(
-                      column(width=12, DT::dataTableOutput("table"))
-                    ) # End second fluidRow
+                      
+                    # tabPanel for 'tabs' content
+                    tabsetPanel(
+                          ### Data Table tab pane
+                          tabPanel("Data Table",
+                                   br(),
+                                   h4("Data Table Filters"),
+                                   fluidRow(
+                                     column(width = 2, h5("Record Type:")),
+                                     column(width = 2, h5("Tag Status:")),
+                                     column(width = 2, h5("Growth Form:")),
+                                     column(width = 2, h5("Plant Status:")),
+                                     column(width = 2, h5("Download filtered data:"))
+                                   ),
+                                   fluidRow(
+                                     column(width = 2, uiOutput(outputId = "recordTypeSelect")),
+                                     column(width = 2, uiOutput(outputId = "tagStatusSelect")),
+                                     column(width = 2, uiOutput(outputId = "growthFormSelect")),
+                                     column(width = 2, uiOutput(outputId = "plantStatusSelect")),
+                                     column(width = 2, downloadButton('downloadDataTable', 'Download (.csv)', class="btn btn-primary"))
+                                   ), #  End second fluidRow
+                                   
+                                   br(),
+                                   hr(),
+                                   # Filtered Data Table output
+                                   DT::dataTableOutput("filterDataTable")
+                                   
+                                   ),
+                          
+                                   
+                          
+                          ### QC Tables tab pane
+                          tabPanel("QC Tables",
+                                   br(),
+                                   h4("QC Table: Strict Duplicates"),
+                                   helpText("The strict duplicate table identifies records that are an exact match of another record
+                                            in all data fields."),
+                                   
+                                   #h5("Temp Table"),
+                                   # Temp Table output
+                                   DT::dataTableOutput("tempTable"),
+                                   
+                                   h5("Temp Text"),
+                                   verbatimTextOutput("tempText")
+                                   ),
+                          
+                          
+                          
+                          ### QC Plots tab pane
+                          tabPanel("QC Plots",
+                                   br(),
+                                   h4("QC Plots test"),
+                                   
+                                   #  Temp Text output
+                                   h5("Temp text"),
+                                   verbatimTextOutput("tempText"),
+                                   
+                                   h5("Temp Table"),
+                                   # Temp Table output
+                                   DT::dataTableOutput("tempTable")
+                                   
+                                   )
+                        )
+                        
+                        
+                        
+                        
+                      
                     
             ) # End Plot Data tabPanel
            
