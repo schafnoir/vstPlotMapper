@@ -157,7 +157,7 @@ navbarPage("NEON VST QC v2.0",
                     # Plot-select controls wellPanel
                     wellPanel(
                       fluidRow(
-                        column(width = 3, h4("Plot Select:")),
+                        column(width = 3, h5("Plot Select:")),
                         column(width = 3, h5("Selected VST event:")),
                         column(width = 3, h5("Selected NEON site:")),
                         column(width = 3, h5("Selected NEON domain:"))
@@ -177,30 +177,20 @@ navbarPage("NEON VST QC v2.0",
                           tabPanel("Data Table",
                                    br(),
                                    h4("Data Table Filters"),
-                                     #  First fluidRow
-                                     fluidRow(
-                                       column(width = 2,
-                                              # recordtype: ShinyWidget multi-select drop-down
-                                              uiOutput(outputId = "recordTypeSelect")
-                                       ),
-                                       column(width = 2,
-                                              # tagstatus: ShinyWidget multi-select drop-down
-                                              uiOutput(outputId = "tagStatusSelect")
-                                       ),
-                                       column(width = 2,
-                                              # growthform: ShinyWidget multi-select drop-down
-                                              uiOutput(outputId = "growthFormSelect")
-                                       ),
-                                       column(width = 2,
-                                              # plantstatus: ShinyWidget multi-select drop-down
-                                              uiOutput(outputId = "plantStatusSelect")
-                                       ),
-                                       column(width = 2,
-                                              # Button to download user-filtered data as .csv file
-                                              h5("Download filtered data:"),
-                                              downloadButton('downloadDataTable', 'Download (.csv)', class="btn btn-primary")
-                                              )
-                                   ), #  End first fluidRow
+                                   fluidRow(
+                                     column(width = 2, h5("Record Type:")),
+                                     column(width = 2, h5("Tag Status:")),
+                                     column(width = 2, h5("Growth Form:")),
+                                     column(width = 2, h5("Plant Status:")),
+                                     column(width = 2, h5("Download filtered data:"))
+                                   ),
+                                   fluidRow(
+                                     column(width = 2, uiOutput(outputId = "recordTypeSelect")),
+                                     column(width = 2, uiOutput(outputId = "tagStatusSelect")),
+                                     column(width = 2, uiOutput(outputId = "growthFormSelect")),
+                                     column(width = 2, uiOutput(outputId = "plantStatusSelect")),
+                                     column(width = 2, downloadButton('downloadDataTable', 'Download (.csv)', class="btn btn-primary"))
+                                   ), #  End second fluidRow
                                    
                                    br(),
                                    hr(),
@@ -213,7 +203,25 @@ navbarPage("NEON VST QC v2.0",
                           
                           ### QC Tables tab pane
                           tabPanel("QC Tables",
-                                   h4("QC Tables test"),
+                                   br(),
+                                   h4("QC Table: Strict Duplicates"),
+                                   helpText("The strict duplicate table identifies records that are an exact match of another record
+                                            in all data fields."),
+                                   
+                                   #h5("Temp Table"),
+                                   # Temp Table output
+                                   DT::dataTableOutput("tempTable"),
+                                   
+                                   h5("Temp Text"),
+                                   verbatimTextOutput("tempText")
+                                   ),
+                          
+                          
+                          
+                          ### QC Plots tab pane
+                          tabPanel("QC Plots",
+                                   br(),
+                                   h4("QC Plots test"),
                                    
                                    #  Temp Text output
                                    h5("Temp text"),
@@ -222,13 +230,7 @@ navbarPage("NEON VST QC v2.0",
                                    h5("Temp Table"),
                                    # Temp Table output
                                    DT::dataTableOutput("tempTable")
-                                   ),
-                          
-                          
-                          
-                          ### QC Plots tab pane
-                          tabPanel("QC Plots",
-                                   h4("QC Plots test")
+                                   
                                    )
                         )
                         
