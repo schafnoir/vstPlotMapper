@@ -922,6 +922,19 @@ shinyServer(function(input, output, session) {
   ### Use group_by(individualid) %>% distinct(.keep_all) to deal with multi-stemmed sis, sap, etc.
   ### Want recordType, tagID, tagStatus, taxonID, gForm, pStatus fields
   
+  ### Create query for data from last bout for selected plot
+  ##  Construct previous eventID
+  prevEvent <- reactive({
+    ## Account for null input before user selects required inputs
+    #shiny::validate(
+    #  need(input$siteChoice != "" && input$eventChoice != "", "")
+    #)
+    
+    temp <- paste(input$siteChoice, input$eventChoice, sep = "_")
+    #temp <- paste("vst", input$siteChoice, as.numeric(str_extract(input$eventChoice, "20[0-9]{2}"))-1, sep = "_")
+    #temp <- ifelse(temp %in% aiEvents(), temp, "")
+    #temp
+  })
   
   
   
@@ -933,7 +946,7 @@ shinyServer(function(input, output, session) {
   ### Temporary output to see intermediate data and text during development
   # Temp text
   output$tempText <- renderText(
-    names(dupPlotData())
+    prevEvent()
   )
   
   # Temp table

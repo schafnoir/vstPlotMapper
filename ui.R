@@ -206,20 +206,25 @@ navbarPage("NEON VST QC v2.0",
                       ### QC Tables tab pane
                       tabPanel("QC Tables",
                                br(),
+                               #  Strict Duplicates table output
                                h4("QC Table: Strict Duplicates"),
                                helpText("Records that are an exact match of another record for all data fields."),
-                               
-                               #  Strict Duplicates table output
                                DT::dataTableOutput("strictDupes"),
                                
                                #  IndividualID Duplicates table output
+                               br(),
                                hr(),
                                br(),
                                h4("QC Table: Individual ID Duplicates"),
                                helpText("Duplicates based on individualID alone; other fields may be unique."),
+                               DT::dataTableOutput("iDupes"),
                                
-                               #  IndividualID Duplicates table output
-                               DT::dataTableOutput("iDupes")
+                               #  Temp Text output
+                               br(),
+                               hr(),
+                               br(),
+                               h5("Temp Text"),
+                               verbatimTextOutput("tempText")
                                
                                
                       ),
