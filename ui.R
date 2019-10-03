@@ -174,9 +174,10 @@ navbarPage("NEON VST QC v2.0",
                     # tabPanel for 'tabs' content
                     tabsetPanel(
                       ### Data Table tab pane
-                      tabPanel("Data Table",
+                      tabPanel("Plot Inventory",
                                br(),
                                h4("Data Table Filters"),
+                               helpText("Configure the table via the drop-downs to create downloadable checklists that ensure sampling completeness, lists of removed tags from the previous bout, lists of dead, downed, or removed trees, etc."),
                                #  First fluidRow
                                fluidRow(
                                  column(width = 2, h5("Record Type:")),
@@ -232,9 +233,9 @@ navbarPage("NEON VST QC v2.0",
                       
                       
                       ### QC Plots tab pane
-                      tabPanel("QC Plots",
+                      tabPanel("QC Figures",
                                br(),
-                               h4("QC Plots test")
+                               h4("QC Figures test")
                                #  Temp Text output
                                #h5("Temp text"),
                                #verbatimTextOutput("tempText"),
