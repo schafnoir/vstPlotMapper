@@ -57,9 +57,9 @@ SELECT * FROM "VST: Apparent Individuals [PROD]" AS parent JOIN "VST: Apparent I
 SELECT parent._record_id, parent.load_status, parent.domainid, parent.siteid, parent.plotid, parent.eventid, child._child_record_id, child.tagid, child.individualid, child.subplotid, child.nestedsubplotid, child.tagstatus, child.taxonid, child.plantstatus, child.growthform, child.shape, child.stemdiameter, child.measurementheight, child.basalstemdiameter, child.basalstemdiametermeasurementheight, child.vdapexheight, child.vdbaseheight, child.maxcrowndiameter, child.ninetycrowndiameter, child.canopyposition FROM "VST: Apparent Individuals [PROD]" AS parent JOIN "VST: Apparent Individuals [PROD]/vst_woody_stems" AS child ON (parent._record_id = child._parent_id) WHERE siteid LIKE 'ABBY' AND eventid LIKE 'vst_ABBY_2018'; #  This works
 
 
+SELECT DISTINCT eventid FROM "VST: Apparent Individuals [PROD]" WHERE plotid LIKE 'BART_001';
 
-
-
+SELECT parent._record_id, parent.eventid, parent.plotid, child._child_record_id, child.individualid, child.tagstatus, child.plantstatus, child.growthform FROM "VST: Apparent Individuals [PROD]" AS parent JOIN "VST: Apparent Individuals [PROD]/vst_woody_stems" AS child ON (parent._record_id = child._parent_id) WHERE eventid LIKE 'vst_BART_2018' AND plotid LIKE 'BART_033';
 
 ####   Example of Shiny query using two input variables
 ##  Construct Fulcrum query for plotIDs

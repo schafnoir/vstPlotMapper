@@ -262,7 +262,7 @@ shinyServer(function(input, output, session) {
     # Check for presence of `pointstatus` = errorPointID
     temp <- joinData() %>% filter(plotsubplotid==input$plotChoice)
     if("errorPointID" %in% temp$pointstatus){
-      warning <- "Mapping Error: An invalid pointID was used in the field to map at least one woody individual. To find errors, go to the Plot Data tab and search by 'pointstatus'."
+      warning <- "Mapping Error: An invalid pointID was used in the field to map at least one woody individual. To find errors, go to the Plot Data tab and search by 'mapStatus'."
       return(warning)
     }
     
@@ -922,25 +922,81 @@ shinyServer(function(input, output, session) {
   ### Use group_by(individualid) %>% distinct(.keep_all) to deal with multi-stemmed sis, sap, etc.
   ### Want recordType, tagID, tagStatus, taxonID, gForm, pStatus fields
   
-  ### Create query for data from last bout for selected plot
-  ##  Construct previous eventID
-  prevEvent <- reactive({
+  
+  ### Construct previous eventID with data for that plot based on user-selected plotID
+  ##  Determine which events have data for the selected plot
+  aiPlotEventQuery <- reactive({
     # Account for null input before user selects required inputs
     shiny::validate(
-      need(input$siteChoice != "" && input$eventChoice != "", "")
+      need(input$dataPlotChoice != "", "")
     )
     
-    temp <- paste("vst", input$siteChoice, as.numeric(str_extract(input$eventChoice, "20[0-9]{2}"))-1, sep = "_")
-    temp <- if(temp %in% unlist(aiEvents())){
-      temp
-    } else {
-      ""
-    }
+    # Get plotID from plotData()
+    pID <- unique(plotData()$plotID)
+    
+    # Construct query for eventIDs in which selected plot was measured
+    temp <- paste(URLencode('SELECT DISTINCT eventid FROM "VST: Apparent Individuals [PROD]"'),
+          URLencode(paste0("WHERE plotid LIKE '", pID, "'")),
+          sep = "%20")
+    temp
   })
   
   
-  ##  Possible next steps: Construct query and necessary support variables to determine plot list from previously selected bout, and whether currently selected plot was measured in previous bout.
+  ##  Get available past events for selected plot
+  aiPastEvents <- reactive({
+    # Account for null input before user selects required inputs
+    shiny::validate(
+      need(input$siteChoice != "" && input$eventChoice != "" && input$dataPlotChoice != "", "")
+    )
+    
+    # Get distinct event years from Fulcrum
+    y <- as.numeric(str_extract(sort(unlist(get_Fulcrum_data(api_token = api_token, sql = aiPlotEventQuery())), decreasing = TRUE), "20[0-9]{2}"))
+    
+    # Define current year based on selected eventID
+    userY <- as.numeric(str_extract(input$eventChoice, "20[0-9]{2}"))
+    
+    # Construct eventIDs from available prior years for user drop-down
+    priorY <- y[y < userY]
+    priorE <- if(length(priorY) > 0){
+      paste("vst", input$siteChoice, priorY, sep = "_")
+    } else {
+      return("")
+    }
+    priorE <- data.frame(priorE, stringsAsFactors = FALSE)
+    colnames(priorE) <- "priorEvents"
+    priorE
+  })
   
+  
+  ##  Render output to prior events drop-down
+  output$priorEventSelect <- renderUI({
+    selectInput("priorEventChoice", label = NULL, c(Choose = '', choices = aiPastEvents()),
+                selectize = TRUE, multiple = FALSE)
+  })
+  
+  
+  
+  ### Query and download prior plot data when user selects a prior event
+  priorPlotData <- reactive({
+    # Account for null input before user selects required inputs
+    shiny::validate(
+      need(input$priorEventChoice != "" && nrow(plotData()) != 0, "")
+    )
+    
+    # Define prior plot event query
+    peQuery <- paste(URLencode('SELECT parent._record_id, parent.eventid, parent.plotid, child._child_record_id, child.individualid, child.tagstatus, child.plantstatus, child.growthform FROM "VST: Apparent Individuals [PROD]" AS parent JOIN "VST: Apparent Individuals [PROD]/vst_woody_stems" AS child'),
+                     URLencode(paste0("ON (parent._record_id = child._parent_id) WHERE eventid LIKE '", input$priorEventChoice, "'",
+                                      " AND plotid LIKE '", unique(plotData()$plotID), "'")),
+                     sep = "%20")
+    
+    # Get prior plot event data
+    peData <- get_Fulcrum_data(api_token = api_token, sql = peQuery)
+    
+    
+    ######### Next want to group_by(individualid) and remove duplicates, filter by appropriate subplotid (recreate ddsubplotid), then group_by(individ) for plotData() and diff the two by individualid. Could also join with mapData() to bring in tagID and recordType.
+    peData
+    
+  })
   
   
   
@@ -948,14 +1004,14 @@ shinyServer(function(input, output, session) {
   ### Temporary output to see intermediate data and text during development
   # Temp text
   output$tempText <- renderText(
-    prevEvent()
+    nrow(priorPlotData())
   )
   
   # Temp table
   output$tempTable <- DT::renderDataTable(
     DT::datatable(
-      temp <- dupPlotData(),
-      escape = FALSE, filter = "top" 
+      temp <- head(priorPlotData()),
+      escape = FALSE, filter = "top"
     )
   )
   

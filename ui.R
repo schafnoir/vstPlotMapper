@@ -208,7 +208,7 @@ navbarPage("NEON VST QC v2.0",
                       tabPanel("QC Tables",
                                br(),
                                #  Strict Duplicates table output
-                               h4("QC Table: Strict Duplicates"),
+                               h4("QC Table: Strict duplicates"),
                                helpText("Records that are an exact match of another record for all data fields."),
                                DT::dataTableOutput("strictDupes"),
                                
@@ -216,14 +216,21 @@ navbarPage("NEON VST QC v2.0",
                                br(),
                                hr(),
                                br(),
-                               h4("QC Table: Individual ID Duplicates"),
+                               h4("QC Table: Individual ID duplicates"),
                                helpText("Duplicates based on individualID alone; other fields may be unique."),
                                DT::dataTableOutput("iDupes"),
                                
                                #  Temp Text output
                                br(),
                                hr(),
-                               br(),
+                               h4("QC Table: Prior bout comparison"),
+                               helpText("Identify individuals missing in current bout compared to previous bout."),
+                               h5("Prior event select:"),
+                               uiOutput(outputId = "priorEventSelect"),
+                               
+                               h5("Temp Table"),
+                               DT::dataTableOutput("tempTable"),
+                               
                                h5("Temp Text"),
                                verbatimTextOutput("tempText")
                                
