@@ -992,9 +992,32 @@ shinyServer(function(input, output, session) {
     # Get prior plot event data
     peData <- get_Fulcrum_data(api_token = api_token, sql = peQuery)
     
+    #  Join with mtData() and plotSpatial data to enable creation of same plotsubplotid variable piped to plotSelect drop-down
     
-    ######### Next want to group_by(individualid) and remove duplicates, filter by appropriate subplotid (recreate ddsubplotid), then group_by(individ) for plotData() and diff the two by individualid. Could also join with mapData() to bring in tagID and recordType.
+    
+    
+    
+    
+    ######### Next want to group_by(individualid) and remove duplicates, then join with mtData() and plotData and create ddsubplotid and plotsubplotid. Next, filter by user-selected plotsubplotid. Then similarly remove dupes from plotData(), and finally anti_join peData with plotData() to obtain records that don't exist in plotData() that do exist in prior event (join on tagID, I think). Finally, select columns for display and arrange.
     peData
+    
+    # m1 <- moabTest %>% group_by(tagID) %>% filter(ifelse(is.na(stemDiam), basalStemDiam == max(basalStemDiam, na.rm = TRUE), stemDiam == max(stemDiam, na.rm = TRUE)))
+    # 
+    # # Create ddsubplotid plotsubplotid variables then filter queried data by user-selected plotsubplotid
+    # temp <- temp %>%
+    #   dplyr::mutate(ddsubplotid = as.integer(ifelse(plottype != "lgTower", 31, 
+    #                                                 ifelse(subplotid %in% c(21,22,30,31), 21,
+    #                                                        ifelse(subplotid %in% c(23,24,32,33), 23,
+    #                                                               ifelse(subplotid %in% c(39,40,48,49), 39,
+    #                                                                      ifelse(subplotid %in% c(41,42,50,51), 41,
+    #                                                                             "NA")))))))
+    # 
+    # # Create `plotsubplotid` to later pipe to plotChoice drop-down: e.g., "(T) BART_050: 21"
+    # temp <- temp %>%
+    #   dplyr::mutate(plotsubplotid = ifelse(ddsubplotid=="NA", "NA",
+    #                                        ifelse(plottype=="distributed", paste0("(D) ", plotid),
+    #                                               ifelse(plottype=="smTower", paste0("(T) ", plotid),
+    #                                                      paste0("(T) ", plotid, ": ", ddsubplotid)))))
     
   })
   
