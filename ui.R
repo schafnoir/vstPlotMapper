@@ -220,20 +220,24 @@ navbarPage("NEON VST QC v2.0",
                                helpText("Duplicates based on individualID alone; other fields may be unique."),
                                DT::dataTableOutput("iDupes"),
                                
-                               #  Temp Text output
+                               #  Prior bout comparison table output
                                br(),
                                hr(),
-                               h4("QC Table: Prior bout comparison"),
-                               helpText("Identify individuals missing in current bout compared to previous bout."),
+                               h4("Compare current data to previous bout data"),
                                h5("Prior event select:"),
                                uiOutput(outputId = "priorEventSelect"),
-                               
-                               h5("Temp Table"),
-                               DT::dataTableOutput("tempTable"),
-                               
-                               h5("Temp Text"),
-                               verbatimTextOutput("tempText")
-                               
+                               br(),
+                               h4("QC Table: Missing in current bout"),
+                               helpText("Identify previously measured individuals that are missing in the current bout. Individuals with no stemDiameter or basalStemDiameter data in previous bout are omitted."),
+                               DT::dataTableOutput("missingPrior"),
+                               br(),
+                               hr(),
+                               h4("QC Table: Growth Increment"),
+                               helpText("Review changes in stem diameter relative to selected prior event. Note that for multi-stem 'smt', 'sap', 'sis', and 'sms' the comparison is made for the largest stem only. 'Delta' values are blank for individuals not measured in previous bout."),
+                               DT::dataTableOutput("growthIncrement"),
+                               br(),
+                               br(),
+                               hr()
                                
                       ),
                       
@@ -242,14 +246,21 @@ navbarPage("NEON VST QC v2.0",
                       ### QC Plots tab pane
                       tabPanel("QC Figures",
                                br(),
-                               h4("QC Figures test")
-                               #  Temp Text output
-                               #h5("Temp text"),
-                               #verbatimTextOutput("tempText"),
+                               fluidRow(
+                                 column(width=6,
+                                        h4("QC Plot: Height and stemDiameter"), 
+                                        helpText("Plot includes 'sbt', 'mbt', 'smt', and 'sis' individuals."),
+                                        plotlyOutput("tempPlot")),
+                                 column(width=6, 
+                                        h4("QC Plot 2"),
+                                        helpText("Blah"),
+                                        verbatimTextOutput("tempText"))
+                               )
                                
                                #h5("Temp Table"),
                                # Temp Table output
-                               #DT::dataTableOutput("tempTable")
+                               #DT::dataTableOutput("tempTable"),
+                               
                       )
                     )
                     

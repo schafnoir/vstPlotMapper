@@ -692,12 +692,13 @@ shinyServer(function(input, output, session) {
     # Select columns needed for drop-down generation and display and rename some to shorten for display
     temp <- temp %>% 
       select(aiFulcrumID, basalstemdiameter, basalstemdiametermeasurementheight, ddsubplotid, eventid,
-             growthform, individualid, load_status, mapStatus, measurementheight, nestedsubplotid, plantstatus, plotid, 
-             recordtype, shape, stemdiameter, subplotid, tagid, tagstatus, taxonid) %>%
+             growthform, individualid, load_status, mapStatus, maxcrowndiameter, measurementheight, nestedsubplotid, ninetycrowndiameter, plantstatus, plotid, plottype, 
+             recordtype, shape, stemdiameter, subplotid, tagid, tagstatus, taxonid, vdapexheight, vdbaseheight) %>%
       rename(basalStemDiam = basalstemdiameter, basalMHeight = basalstemdiametermeasurementheight,
              eventID = eventid, gForm = growthform, mHeight = measurementheight, nSubID = nestedsubplotid,
              pStatus = plantstatus, plotID = plotid, recordType = recordtype, stemDiam = stemdiameter,
              subID = subplotid, tagID = tagid, tagStatus = tagstatus, taxonID = taxonid) %>%
+      mutate(height = signif(vdapexheight - vdbaseheight), digits = 4) %>%
       arrange(subID, nSubID, tagID)
     
     # Fix null values in gForm that otherwise result in loss of records when table is displayed
@@ -706,7 +707,7 @@ shinyServer(function(input, output, session) {
     # Arrange fields
     temp <- temp[c("aiFulcrumID", "load_status", "eventID", "plotID", "subID", "nSubID", "recordType", "mapStatus",
                    "tagID", "tagStatus", "taxonID", "gForm", "mHeight", "stemDiam", "basalMHeight", "basalStemDiam",
-                   "pStatus", "shape", "ddsubplotid", "individualid")]
+                   "height", "pStatus", "shape", "ddsubplotid", "individualid", "plottype", "maxcrowndiameter", "ninetycrowndiameter")]
     
   })
   
@@ -838,7 +839,7 @@ shinyServer(function(input, output, session) {
       temp <- plotData() %>% 
         filter(recordType %in% input$record_type, tagStatus %in% input$tag_status,
                pStatus %in% input$plant_status, gForm %in% input$growth_form) %>%
-        select(-ddsubplotid, -eventID, -load_status, -plotID, -individualid), 
+        select(-ddsubplotid, -eventID, -height, -load_status, -plotID, -individualid, -plottype, -maxcrowndiameter, -ninetycrowndiameter), 
       escape = FALSE, filter = "top" 
     )
   )
@@ -855,7 +856,7 @@ shinyServer(function(input, output, session) {
       temp <- plotData() %>%
         filter(recordType %in% input$record_type, tagStatus %in% input$tag_status,
                pStatus %in% input$plant_status, gForm %in% input$growth_form) %>%
-        select(-ddsubplotid, -individualid)
+        select(-ddsubplotid, -height, -individualid, -plottype, -maxcrowndiameter, -ninetycrowndiameter)
       write.csv(temp, file, row.names = FALSE)
     }
   )
@@ -876,8 +877,8 @@ shinyServer(function(input, output, session) {
       arrange(subID, nSubID, tagID)
     
     # Arrange fields
-    temp <- temp[c("aiFulcrumID", "subID", "nSubID", "tagID", "taxonID", "gForm", "mHeight", "stemDiam",
-                   "basalMHeight", "basalStemDiam", "pStatus", "shape")]
+    temp <- temp[c("aiFulcrumID", "subID", "nSubID", "tagID", "taxonID", "gForm", "pStatus", "mHeight", "stemDiam",
+                   "basalMHeight", "basalStemDiam", "shape")]
       
   })
   
@@ -902,8 +903,8 @@ shinyServer(function(input, output, session) {
       arrange(subID, nSubID, tagID)
     
     # Arrange fields
-    temp <- temp[c("aiFulcrumID", "subID", "nSubID", "tagID", "taxonID", "gForm", "mHeight", "stemDiam",
-                   "basalMHeight", "basalStemDiam", "pStatus", "shape")]
+    temp <- temp[c("aiFulcrumID", "subID", "nSubID", "tagID", "taxonID", "gForm", "pStatus", "mHeight", "stemDiam",
+                   "basalMHeight", "basalStemDiam", "shape")]
   })
   
   
@@ -918,9 +919,7 @@ shinyServer(function(input, output, session) {
   
   
   ###################################################################################################
-  ### Create table of individualIDs measured last year that were not measured this year
-  ### Use group_by(individualid) %>% distinct(.keep_all) to deal with multi-stemmed sis, sap, etc.
-  ### Want recordType, tagID, tagStatus, taxonID, gForm, pStatus fields
+  ### Create tables to compare this measurement event with a prior event
   
   
   ### Construct previous eventID with data for that plot based on user-selected plotID
@@ -976,15 +975,15 @@ shinyServer(function(input, output, session) {
   
   
   
-  ### Query and download prior plot data when user selects a prior event
+  ### Query and download prior plot data when user selects a prior event; individualID duplicates are removed
   priorPlotData <- reactive({
     # Account for null input before user selects required inputs
     shiny::validate(
-      need(input$priorEventChoice != "" && nrow(plotData()) != 0, "")
+      need(input$priorEventChoice != "" && nrow(plotData()) != 0, "Please select a prior event")
     )
     
     # Define prior plot event query
-    peQuery <- paste(URLencode('SELECT parent._record_id, parent.eventid, parent.plotid, child._child_record_id, child.individualid, child.tagstatus, child.plantstatus, child.growthform FROM "VST: Apparent Individuals [PROD]" AS parent JOIN "VST: Apparent Individuals [PROD]/vst_woody_stems" AS child'),
+    peQuery <- paste(URLencode('SELECT parent._record_id, parent.eventid, parent.plotid, child._child_record_id, child.individualid, child.tagstatus, child.growthform, child.measurementheight, child.stemdiameter, child.basalstemdiametermeasurementheight, child.basalstemdiameter, child.plantstatus FROM "VST: Apparent Individuals [PROD]" AS parent JOIN "VST: Apparent Individuals [PROD]/vst_woody_stems" AS child'),
                      URLencode(paste0("ON (parent._record_id = child._parent_id) WHERE eventid LIKE '", input$priorEventChoice, "'",
                                       " AND plotid LIKE '", unique(plotData()$plotID), "'")),
                      sep = "%20")
@@ -992,50 +991,153 @@ shinyServer(function(input, output, session) {
     # Get prior plot event data
     peData <- get_Fulcrum_data(api_token = api_token, sql = peQuery)
     
-    #  Join with mtData() and plotSpatial data to enable creation of same plotsubplotid variable piped to plotSelect drop-down
+    #   Generate list of individuals in the past event, removing duplicates by individualID. 
+    #   Then join with mtData() and plotSpatial data to enable creation of same plotsubplotid variable for filtering to correct subplotID
+    peData <- peData %>% dplyr::group_by(individualid) %>%
+      filter(ifelse(is.na(stemdiameter), basalstemdiameter == max(basalstemdiameter, na.rm = TRUE), stemdiameter == max(stemdiameter, na.rm = TRUE)))
+
+    peData <- dplyr::left_join(peData, mtData(), by = "individualid")
+    peData <- peData %>% rename(plotid = plotid.x)
+    peData <- dplyr::inner_join(peData, plotSpatial, by = "plotid")
+    peData$plantstatus <- as.numeric(peData$plantstatus)
     
+    #   Create ddsubplotid plotsubplotid variables then filter queried data by user-selected plotsubplotid
+    peData <- peData %>%
+      dplyr::mutate(ddsubplotid = as.integer(ifelse(plottype != "lgTower", 31,
+                                                    ifelse(subplotid %in% c(21,22,30,31), 21,
+                                                           ifelse(subplotid %in% c(23,24,32,33), 23,
+                                                                  ifelse(subplotid %in% c(39,40,48,49), 39,
+                                                                         ifelse(subplotid %in% c(41,42,50,51), 41,
+                                                                                "NA")))))))
     
+    peData <- peData %>%
+      dplyr::mutate(plotsubplotid = ifelse(ddsubplotid=="NA", "NA",
+                                           ifelse(plottype=="distributed", paste0("(D) ", plotid),
+                                                  ifelse(plottype=="smTower", paste0("(T) ", plotid),
+                                                         paste0("(T) ", plotid, ": ", ddsubplotid)))))
     
+    peData <- peData %>% filter(plotsubplotid == input$dataPlotChoice)
     
+    # Fix null values in growthform that may cause problems
+    peData <- peData %>% mutate(growthform = ifelse(is.na(growthform), "blank", growthform))
     
-    ######### Next want to group_by(individualid) and remove duplicates, then join with mtData() and plotData and create ddsubplotid and plotsubplotid. Next, filter by user-selected plotsubplotid. Then similarly remove dupes from plotData(), and finally anti_join peData with plotData() to obtain records that don't exist in plotData() that do exist in prior event (join on tagID, I think). Finally, select columns for display and arrange.
+    #   Select desired columns
+    peData <- peData %>% select(eventid, plotid, subplotid, nestedsubplotid, recordtype, individualid, tagid, tagstatus, taxonid, growthform,
+                                plantstatus, measurementheight, stemdiameter, basalstemdiametermeasurementheight, basalstemdiameter, ddsubplotid,
+                                plotsubplotid)
     peData
     
-    # m1 <- moabTest %>% group_by(tagID) %>% filter(ifelse(is.na(stemDiam), basalStemDiam == max(basalStemDiam, na.rm = TRUE), stemDiam == max(stemDiam, na.rm = TRUE)))
-    # 
-    # # Create ddsubplotid plotsubplotid variables then filter queried data by user-selected plotsubplotid
-    # temp <- temp %>%
-    #   dplyr::mutate(ddsubplotid = as.integer(ifelse(plottype != "lgTower", 31, 
-    #                                                 ifelse(subplotid %in% c(21,22,30,31), 21,
-    #                                                        ifelse(subplotid %in% c(23,24,32,33), 23,
-    #                                                               ifelse(subplotid %in% c(39,40,48,49), 39,
-    #                                                                      ifelse(subplotid %in% c(41,42,50,51), 41,
-    #                                                                             "NA")))))))
-    # 
-    # # Create `plotsubplotid` to later pipe to plotChoice drop-down: e.g., "(T) BART_050: 21"
-    # temp <- temp %>%
-    #   dplyr::mutate(plotsubplotid = ifelse(ddsubplotid=="NA", "NA",
-    #                                        ifelse(plottype=="distributed", paste0("(D) ", plotid),
-    #                                               ifelse(plottype=="smTower", paste0("(T) ", plotid),
-    #                                                      paste0("(T) ", plotid, ": ", ddsubplotid)))))
     
   })
   
   
   
+  ### Create and display table of individuals present in priorPlotData() that do not exist in plotData()
+  ##  Identify target individualIDs
+  missingPriorEvent <- reactive({
+    temp <- dplyr::anti_join(priorPlotData(), plotData(), by = "individualid")
+    temp <- temp %>% 
+      select(individualid, eventid, plotid, subplotid, nestedsubplotid, recordtype, tagid, tagstatus, taxonid, growthform, plantstatus) %>%
+      rename(eventID = eventid, plotID = plotid, subID = subplotid, nSubID = nestedsubplotid, recordType = recordtype, tagID = tagid,
+             tagStatus = tagstatus, taxonID = taxonid, gForm = growthform, pStatus = plantstatus)
+    temp
+  })
+  
+  
+  ##  Create output for display
+  output$missingPrior <- DT::renderDataTable(
+    DT::datatable(
+      temp <- missingPriorEvent() %>% ungroup() %>%
+        select(-eventID, -plotID, -individualid),
+      escape = FALSE, filter = "top"
+    )
+  )
+    
+ 
+  
+  ### Create and display table of individuals with negative growth in plotData() compared to priorPlotData()
+  ##  Identify target individuals
+  growthPriorEvent <- reactive({
+    # Remove individualid duplicates and focus only on largest stems for multi-stem smt, sap, sis, and sms
+    pData <- plotData() %>% dplyr::group_by(individualid) %>%
+      filter(ifelse(is.na(stemDiam), basalStemDiam == max(basalStemDiam, na.rm = TRUE), stemDiam == max(stemDiam, na.rm = TRUE)))
+    
+    # Join priorPlotData() with pData and calculate changes in measurement height and stem diameter
+    temp <- dplyr::right_join(priorPlotData(), pData, by = "individualid")
+    temp <- temp %>% 
+      mutate(deltaMHeight = mHeight - measurementheight) %>%
+      mutate(deltaStemDiam = signif(stemDiam - stemdiameter), digits = 3) %>%
+      mutate(deltaBasalMHeight = basalMHeight - basalstemdiametermeasurementheight) %>%
+      mutate(deltaBasalStemDiam = signif(basalStemDiam - basalstemdiameter), digits = 3)
+    
+  })
+  
+  
+  ##  Create output for display
+  output$growthIncrement <- DT::renderDataTable(
+    DT::datatable(
+      temp <- growthPriorEvent() %>% ungroup() %>%
+        select(aiFulcrumID, tagID, taxonID, gForm, mHeight, deltaMHeight, stemDiam, deltaStemDiam, 
+               basalMHeight, deltaBasalMHeight, basalStemDiam, deltaBasalStemDiam, -individualid),
+      escape = FALSE, filter = "top"
+    )
+  )
+  
+
+  
+  
+  
   ###################################################################################################
+  ##### QC Figures Tab content  ######################################################################
+  ###################################################################################################
+    
+  ### Create scatterplot of height vs stemDiameter for individuals that have both measurements, color by growthform
+  ggHeightDiam <- reactive({
+    # Account for null input before user selects a plotid or when user changes events, sites, or domains
+    shiny::validate(
+      need(input$dataPlotChoice != "", "Please select a plot")
+    )
+    # Filter plotData() to remove blank height and stemDiameter, and gForm = sbt, mbt, smt, sis
+    temp <- plotData() %>%
+      filter(gForm %in% c("sbt", "mbt", "smt", "sis"), !is.na(stemDiam), !is.na(height))
+    
+    # Create the basic ggplot from the filtered plotData()
+    p <- ggplot(temp, aes(x=stemDiam, y=height)) +
+      # Add axis labels
+      labs(x = "stemDiameter (cm)", y = "height (m)") +
+      theme(axis.text = element_text(size = 8)) +
+      theme(axis.title = element_text(size = 10, face = "bold")) +
+      theme(legend.text = element_text(size=10))
+    p <- p + geom_point(aes(color=gForm, label = tagID, label2 = taxonID), shape = 21, stroke = 0.5, show.legend = TRUE, size = 3)
+    p <- ggplotly(p, tooltip = c("gForm", "tagID", "taxonID"))
+    p
+    
+    ######### Add Loess curve with confidence intervals
+    
+  })
+  
+  
+    
+    
+    ###################################################################################################
   ### Temporary output to see intermediate data and text during development
   # Temp text
   output$tempText <- renderText(
-    nrow(priorPlotData())
+    #names(priorPlotData())
+    names(plotData())
   )
   
-  # Temp table
-  output$tempTable <- DT::renderDataTable(
-    DT::datatable(
-      temp <- head(priorPlotData()),
-      escape = FALSE, filter = "top"
-    )
+  # # Temp table
+  # output$tempTable <- DT::renderDataTable(
+  #   DT::datatable(
+  #     temp <- ggHeightDiam(),
+  #     escape = FALSE, filter = "top"
+  #   )
+  # )
+  
+  # Temp plot
+  output$tempPlot <- renderPlotly(
+    ggHeightDiam()
   )
   
   
